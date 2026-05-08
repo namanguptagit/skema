@@ -1,0 +1,161 @@
+# Schema Visualizer — Implementation Plan
+
+---
+
+## Phase 1 — Foundation & Data Model
+
+**Step 1: Define the Normalized Node Schema**
+
+Every parser, regardless of input format, must produce nodes with a consistent shape. Decide what a node looks like universally — it needs an id, a display name, a kind (interface, enum, class, table, method, scalar), a list of fields or values, optional metadata like description or docstring, and a source format tag so the renderer knows where it came from.
+
+**Step 2: Define the Normalized Edge Schema**
+
+Edges represent relationships between nodes. Each edge needs a source node id, a target node id, a relationship kind (extends, implements, references, returns, has-field, foreign-key), and an optional label which is usually the field name that created the relationship.
+
+**Step 3: Define the Field Schema**
+
+Fields live inside nodes. Each field needs a name, a type string, optional modifiers (optional, nullable, array, readonly), and optional metadata like default value or constraints. This is the row-level data inside each card on the canvas.
+
+---
+
+## Phase 2 — Format Detection & Parsing
+
+**Step 4: Build the Format Auto-Detector**
+
+Before parsing, you need to identify what format the user pasted in. Write a detector that scans for signal keywords — `interface`, `type` with `=` for TypeScript; `CREATE TABLE` for SQL; `type Query` or `schema {` for GraphQL; `message` and `syntax =` for Protobuf; `model` with `@@` decorators for Prisma; `$schema` or `$ref` for JSON Schema. Return a format enum so the right parser gets called.
+
+**Step 5: TypeScript Parser**
+
+This is the most complex parser and the most important one to get right first. It needs to handle:
+- `interface Foo { ... }` — extract all fields and their types
+- `type Foo = { ... }` — same as interface
+- `type Foo = Bar | Baz` — union types become edges to each member
+- `type Foo = Bar & Baz` — intersection types, same treatment
+- Generics like `Array<User>` or `Map<string, Role>` — strip the wrapper, create edges to the inner types
+- Optional fields with `?` — mark the field as optional
+- `extends` keyword — becomes an edge of kind "extends"
+
+**Step 6: Enum Parser (Multi-format)**
+
+Enums appear in TypeScript, Java, C#, Python, GraphQL, and SQL. Build a single enum parser that handles all of them. The output is always the same — a node of kind enum with a list of string values and their optional numeric or string assignments.
+
+**Step 7: Database Schema Parser**
+
+Needs to handle SQL `CREATE TABLE` statements and Prisma schema format. Extract table name, all columns with their SQL types, primary key markers, foreign key constraints, unique constraints, and not-null markers. Foreign keys become edges between table nodes.
+
+**Step 8: GraphQL SDL Parser**
+
+Handle `type`, `input`, `enum`, `interface`, `union`, `scalar`, `Query`, `Mutation`, `Subscription`. Queries and Mutations are treated as method nodes. Union types become edges to all their members. Directives like `@deprecated` become metadata on the field.
+
+**Step 9: Class & Method Tree Parser**
+
+For TypeScript classes, Python classes, Java classes. Extract the class name, all properties with types, all methods with their parameter list and return type. Each method becomes a child node linked to the class. Constructor is treated specially — it shows the initialization shape of the class.
+
+**Step 10: JSON Schema / OpenAPI Parser**
+
+Handle `$ref` resolution — this is the tricky part. Build a ref registry that collects all definitions first, then resolves references when building edges. OpenAPI operations (GET, POST etc.) become method nodes linked to their request/response schema nodes.
+
+---
+
+## Phase 3 — Canvas & Rendering
+
+**Step 11: Static Node Card Renderer**
+
+Before any layout engine, get individual node cards rendering correctly. Each kind has its own visual template:
+- Interface/Type card: header with name and kind badge, then a row per field showing name, type, and modifiers
+- Enum card: header, then a compact list of values
+- Class card: header, property rows, then a divider, then method rows
+- Table card: header with table name, column rows with PK/FK/type badges
+- Method node: compact single-block showing signature
+
+**Step 12: Edge Renderer**
+
+Draw edges between cards as curved or straight lines with arrowheads. Different edge kinds get different visual treatments — extends is a hollow arrow, references is a solid arrow, foreign-key is a dashed line, implements is a dotted line. Where multiple edges go to the same target, fan them out slightly so they don't stack on top of each other.
+
+**Step 13: Static Auto-Layout (no physics yet)**
+
+Before adding drag and force, implement a simple deterministic layout. Group nodes by kind into columns or clusters — enums on one side, interfaces in the center, tables on another side, methods near their parent class. Use a grid within each group with consistent spacing. This gives a readable starting position before the user interacts.
+
+**Step 14: Force-Directed Layout**
+
+Layer a spring physics simulation on top of the static layout. Connected nodes attract, all nodes repel each other, edges act as springs. The simulation runs for a fixed number of ticks on first load to settle the graph, then pauses. The user can trigger re-layout at any time. Important: nodes the user has manually dragged stay pinned and don't get moved by the simulation.
+
+**Step 15: Zoom & Pan**
+
+Wrap the canvas in a viewport transform. Scroll wheel zooms in/out centered on the cursor. Click and drag on empty canvas pans. Add zoom controls (+ / - / reset) in the corner. The viewport transform is just a scale + translate applied to the root SVG group — all node positions stay in graph coordinates.
+
+**Step 16: Node Drag**
+
+Each node card is draggable. On drag start, pin the node so the force simulation ignores it. On drag end, keep the node pinned at its new position. This lets users manually clean up the layout.
+
+---
+
+## Phase 4 — Interactivity & Selection
+
+**Step 17: Node Selection & Focus Mode**
+
+Clicking a node enters focus mode. The clicked node stays fully visible. All nodes directly connected to it stay visible but slightly dimmed. All unconnected nodes dim heavily. All edges not touching the selected node fade out. Clicking empty canvas exits focus mode.
+
+**Step 18: Edge Hover Tooltip**
+
+Hovering an edge shows a small tooltip with the field name that created the relationship, the relationship kind, and the direction. This is especially important for database foreign keys where the field name carries meaning.
+
+**Step 19: Node Detail Drawer**
+
+Clicking a node also opens a side drawer or bottom panel that shows the full detail of that node — every field with its complete type annotation, all outgoing and incoming edges with their counterpart node names as clickable links, and any docstrings or comments extracted during parsing.
+
+**Step 20: Method Tree Panel**
+
+For schemas that contain classes or services, render a separate collapsible tree panel alongside the graph. The tree is purely textual — class name as root, methods as children with their full signatures. Hovering a method in the tree highlights the corresponding node or edge in the graph. Clicking a method scrolls the graph to focus on it.
+
+---
+
+## Phase 5 — Search, Filter & Navigation
+
+**Step 21: Global Search**
+
+A search bar that filters the graph in real time. Matching nodes stay visible, non-matching nodes dim. Search matches on node name, field names, type names, and enum values. Pressing Enter cycles through matches and centers the viewport on each one.
+
+**Step 22: Kind Filter Bar**
+
+A row of toggle chips — one per node kind (Interface, Enum, Class, Table, Method, Scalar). Toggling a kind hides all nodes of that kind and collapses their edges. Useful for cutting through a large schema to focus on just the tables or just the enums.
+
+**Step 23: Relationship Filter**
+
+Checkboxes or toggles for each edge kind — show or hide extends edges, reference edges, foreign-key edges independently. Helps when a schema has many relationships and the graph gets visually noisy.
+
+---
+
+## Phase 6 — Polish & Export
+
+**Step 24: Error Handling & Parse Feedback**
+
+When parsing fails or partially fails, don't show a blank canvas. Show which parts were successfully parsed and which lines or blocks were unrecognized. Display a small error log panel below the editor with line numbers and what went wrong.
+
+**Step 25: Multi-Schema Support**
+
+Allow pasting multiple schema files or blocks into separate tabs. Relationships that cross schema files — like a TypeScript type that references a database table name — get auto-detected and rendered as cross-file edges with a distinct visual style.
+
+**Step 26: Export**
+
+- Export the graph as SVG (what you see on screen)
+- Export as PNG (rasterized)
+- Export the normalized node/edge JSON (useful for piping into other tools)
+- Copy a shareable URL that encodes the schema in the query string so you can send it to someone
+
+**Step 27: Persistence**
+
+Save the last-used schema and the user's manual node positions to localStorage. When they come back, the graph restores exactly where they left off — same layout, same positions, same zoom level.
+
+---
+
+## Build Order Summary
+
+| Phase | What you get after completing it |
+|---|---|
+| Phase 1 | A stable data contract every other piece builds on |
+| Phase 2 | Can parse real schemas into nodes and edges |
+| Phase 3 | A visible, navigable graph on screen |
+| Phase 4 | An interactive, explorable graph |
+| Phase 5 | Usable with large, complex schemas |
+| Phase 6 | Production-ready and shareable |
