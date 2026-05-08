@@ -110,6 +110,121 @@ impl Parser for TypeScriptParser {
                             format: FormatTag::TypeScript,
                         });
                     }
+                    Decl::Class(class_decl) => {
+                        let id = class_decl.ident.sym.to_string();
+                        let display_name = id.clone();
+                        let mut fields = Vec::new();
+
+                        // Parse extends
+                        if let Some(super_class) = &class_decl.class.super_class {
+                            if let swc_ecma_ast::Expr::Ident(ident) = &**super_class {
+                                edges.push(SchemaEdge {
+                                    source_node_id: id.clone(),
+                                    target_node_id: ident.sym.to_string(),
+                                    kind: RelationshipKind::Extends,
+                                    label: None,
+                                });
+                            }
+                        }
+
+                        // Parse implements
+                        for implements in &class_decl.class.implements {
+                            if let swc_ecma_ast::Expr::Ident(ident) = &*implements.expr {
+                                edges.push(SchemaEdge {
+                                    source_node_id: id.clone(),
+                                    target_node_id: ident.sym.to_string(),
+                                    kind: RelationshipKind::Implements,
+                                    label: None,
+                                });
+                            }
+                        }
+
+                        // Parse properties and methods
+                        for member in &class_decl.class.body {
+                            match member {
+                                swc_ecma_ast::ClassMember::ClassProp(prop) => {
+                                    let field_name = match &prop.key {
+                                        swc_ecma_ast::PropName::Ident(ident) => ident.sym.to_string(),
+                                        _ => "unknown".to_string(),
+                                    };
+
+                                    let mut modifiers = Vec::new();
+                                    if prop.is_optional {
+                                        modifiers.push(FieldModifier::Optional);
+                                    }
+                                    if prop.readonly {
+                                        modifiers.push(FieldModifier::Readonly);
+                                    }
+
+                                    let ty_string = extract_type_string(&prop.type_ann);
+                                    
+                                    if is_custom_type(&ty_string) {
+                                        edges.push(SchemaEdge {
+                                            source_node_id: id.clone(),
+                                            target_node_id: ty_string.clone(),
+                                            kind: RelationshipKind::References,
+                                            label: Some(field_name.clone()),
+                                        });
+                                    }
+
+                                    fields.push(SchemaField {
+                                        name: field_name,
+                                        ty: ty_string,
+                                        modifiers: if modifiers.is_empty() { None } else { Some(modifiers) },
+                                        metadata: None,
+                                    });
+                                }
+                                swc_ecma_ast::ClassMember::Method(method) => {
+                                    let method_name = match &method.key {
+                                        swc_ecma_ast::PropName::Ident(ident) => ident.sym.to_string(),
+                                        _ => "unknown".to_string(),
+                                    };
+
+                                    let return_type = extract_type_string(&method.function.return_type);
+                                    
+                                    let method_id = format!("{}.{}", id, method_name);
+                                    
+                                    // Map Method as a Node
+                                    nodes.push(SchemaNode {
+                                        id: method_id.clone(),
+                                        display_name: method_name.clone(),
+                                        kind: NodeKind::Method,
+                                        fields: vec![], // parameters could be fields, simplified for now
+                                        metadata: None,
+                                        format: FormatTag::TypeScript,
+                                    });
+
+                                    // Edge from Class to Method
+                                    edges.push(SchemaEdge {
+                                        source_node_id: id.clone(),
+                                        target_node_id: method_id,
+                                        kind: RelationshipKind::HasField,
+                                        label: None,
+                                    });
+
+                                    // If returning a custom type, add Returns edge
+                                    if is_custom_type(&return_type) {
+                                        edges.push(SchemaEdge {
+                                            source_node_id: method_name,
+                                            target_node_id: return_type.clone(),
+                                            kind: RelationshipKind::Returns,
+                                            label: None,
+                                        });
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+
+                        nodes.push(SchemaNode {
+                            id,
+                            display_name,
+                            kind: NodeKind::Class,
+                            fields,
+                            metadata: None,
+                            format: FormatTag::TypeScript,
+                        });
+                    }
                     _ => {}
                 }
             }
@@ -123,7 +238,24 @@ impl Parser for TypeScriptParser {
 fn extract_type_string(type_ann: &Option<Box<swc_ecma_ast::TsTypeAnn>>) -> String {
     match type_ann {
         Some(ann) => match &*ann.type_ann {
-            TsType::TsKeywordType(kw) => format!("{:?}", kw.kind).to_lowercase().replace("tsKeyword", ""),
+            TsType::TsKeywordType(kw) => {
+                use swc_ecma_ast::TsKeywordTypeKind::*;
+                match kw.kind {
+                    TsStringKeyword    => "string".to_string(),
+                    TsNumberKeyword    => "number".to_string(),
+                    TsBooleanKeyword   => "boolean".to_string(),
+                    TsBigIntKeyword    => "bigint".to_string(),
+                    TsSymbolKeyword    => "symbol".to_string(),
+                    TsUndefinedKeyword => "undefined".to_string(),
+                    TsNullKeyword      => "null".to_string(),
+                    TsNeverKeyword     => "never".to_string(),
+                    TsVoidKeyword      => "void".to_string(),
+                    TsObjectKeyword    => "object".to_string(),
+                    TsAnyKeyword       => "any".to_string(),
+                    TsUnknownKeyword   => "unknown".to_string(),
+                    TsIntrinsicKeyword => "intrinsic".to_string(),
+                }
+            }
             TsType::TsTypeRef(tr) => match &tr.type_name {
                 swc_ecma_ast::TsEntityName::Ident(ident) => ident.sym.to_string(),
                 _ => "ComplexType".to_string(),
