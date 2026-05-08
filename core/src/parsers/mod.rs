@@ -1,4 +1,7 @@
 pub mod typescript;
+pub mod sql;
+pub mod prisma;
+pub mod enums;
 
 use crate::schema::{FormatTag, ParsedSchema};
 use regex::Regex;
@@ -13,7 +16,7 @@ pub fn detect_format(input: &str) -> FormatTag {
     let ts_heuristics = Regex::new(r"\b(interface|type\s+\w+\s*=)\b").unwrap();
     let sql_heuristics = Regex::new(r"(?i)\bCREATE\s+TABLE\b").unwrap();
     let graphql_heuristics = Regex::new(r"\btype\s+\w+\s*\{|\bschema\s*\{").unwrap();
-    let prisma_heuristics = Regex::new(r"\bmodel\s+\w+\s*\{.*@@").unwrap();
+    let prisma_heuristics = Regex::new(r"\bmodel\s+\w+\s*\{").unwrap();
     let protobuf_heuristics = Regex::new(r"\bsyntax\s*=\s*.proto").unwrap();
 
     if sql_heuristics.is_match(input) {
@@ -40,11 +43,20 @@ pub fn detect_format(input: &str) -> FormatTag {
 pub fn parse_schema(input: &str) -> Result<ParsedSchema, String> {
     let format = detect_format(input);
 
-    match format {
-        FormatTag::TypeScript => {
-            let parser = typescript::TypeScriptParser;
-            parser.parse(input)
-        }
+    let mut parsed = match format {
+        FormatTag::TypeScript => typescript::TypeScriptParser.parse(input),
+        FormatTag::Sql => sql::SqlParser.parse(input),
+        FormatTag::Prisma => prisma::PrismaParser.parse(input),
         _ => Err(format!("Unsupported format or unknown schema type: {:?}", format)),
+    }?;
+
+    // Enum extraction pass (since enums can exist in TS, GraphQL, Prisma, etc.)
+    if let Ok(enum_parsed) = enums::EnumParser.parse(input) {
+        for mut node in enum_parsed.nodes {
+            node.format = format.clone(); // Tag the enum with the detected root format
+            parsed.nodes.push(node);
+        }
     }
+
+    Ok(parsed)
 }
