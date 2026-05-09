@@ -1,0 +1,229 @@
+import React, { useState, useRef } from 'react';
+import type { SchemaNode, SchemaEdge } from '../types';
+import { NodeCard } from './NodeCard';
+
+interface CanvasProps {
+  nodes: SchemaNode[];
+  edges: SchemaEdge[];
+  onNodeMove: (nodeId: string, x: number, y: number) => void;
+}
+
+export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
+  const [viewBox, setViewBox] = useState({ x: -20, y: -20, w: 1400, h: 900 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [dragNode, setDragNode] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
+  const svgScale = () => viewBox.w / (svgRef.current?.clientWidth || 1400);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Middle-click OR left-click on background → pan
+    if (e.button === 1 || e.button === 0) {
+      setIsPanning(true);
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    setDragNode(nodeId);
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const dx = e.clientX - lastMousePos.current.x;
+    const dy = e.clientY - lastMousePos.current.y;
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+
+    if (dragNode) {
+      const scale = svgScale();
+      const node = nodes.find(n => n.id === dragNode);
+      if (node) {
+        onNodeMove(dragNode, (node.x || 0) + dx * scale, (node.y || 0) + dy * scale);
+      }
+    } else if (isPanning) {
+      const scale = svgScale();
+      setViewBox(prev => ({
+        ...prev,
+        x: prev.x - dx * scale,
+        y: prev.y - dy * scale,
+      }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+    setDragNode(null);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 1.12 : 0.88;
+    setViewBox(prev => {
+      const newW = Math.min(Math.max(prev.w * factor, 300), 6000);
+      const newH = Math.min(Math.max(prev.h * factor, 200), 4000);
+      return {
+        x: prev.x - (newW - prev.w) / 2,
+        y: prev.y - (newH - prev.h) / 2,
+        w: newW,
+        h: newH,
+      };
+    });
+  };
+
+  return (
+    <div style={{ width: '100%', height: '100%', background: '#020617', position: 'relative', overflow: 'hidden' }}>
+      <svg
+        ref={svgRef}
+        style={{ width: '100%', height: '100%', cursor: dragNode ? 'grabbing' : isPanning ? 'grabbing' : 'default' }}
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+      >
+        <defs>
+          {/* Dot grid */}
+          <pattern id="dots" width="30" height="30" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.06)" />
+          </pattern>
+          {/* Arrowhead markers */}
+          <marker id="arrow-ref" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" fillOpacity="0.7" />
+          </marker>
+          <marker id="arrow-ext" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#a855f7" fillOpacity="0.7" />
+          </marker>
+          <marker id="arrow-fk" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" fillOpacity="0.7" />
+          </marker>
+        </defs>
+
+        {/* Background */}
+        <rect
+          x={viewBox.x - 5000}
+          y={viewBox.y - 5000}
+          width={viewBox.w + 10000}
+          height={viewBox.h + 10000}
+          fill="url(#dots)"
+        />
+
+        {/* Edges — render below nodes */}
+        {edges.map((edge, i) => {
+          const src = nodes.find(n => n.id === edge.sourceNodeId);
+          const tgt = nodes.find(n => n.id === edge.targetNodeId);
+          if (!src || !tgt) return null;
+
+          const nodeWidth = 240;
+          const nodeHeaderH = 38;
+          const sx = (src.x || 0) + nodeWidth;
+          const sy = (src.y || 0) + nodeHeaderH / 2;
+          const tx = (tgt.x || 0);
+          const ty = (tgt.y || 0) + nodeHeaderH / 2;
+          const cx = (sx + tx) / 2;
+
+          const markerColor = edge.kind === 'extends' || edge.kind === 'implements'
+            ? 'url(#arrow-ext)'
+            : edge.kind === 'foreign-key'
+            ? 'url(#arrow-fk)'
+            : 'url(#arrow-ref)';
+
+          const strokeColor = edge.kind === 'extends' || edge.kind === 'implements'
+            ? '#a855f7'
+            : edge.kind === 'foreign-key'
+            ? '#f59e0b'
+            : '#3b82f6';
+
+          return (
+            <g key={`edge-${i}`}>
+              <path
+                d={`M ${sx} ${sy} C ${cx + 30} ${sy}, ${cx - 30} ${ty}, ${tx} ${ty}`}
+                stroke={strokeColor}
+                strokeWidth="1.5"
+                strokeOpacity="0.5"
+                fill="none"
+                markerEnd={markerColor}
+                strokeDasharray={edge.kind === 'references' ? '6 3' : undefined}
+              />
+              {edge.label && (
+                <text
+                  x={(sx + tx) / 2}
+                  y={(sy + ty) / 2 - 6}
+                  fill={strokeColor}
+                  fontSize="9"
+                  textAnchor="middle"
+                  opacity="0.7"
+                  style={{ userSelect: 'none' }}
+                >
+                  {edge.label}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Nodes */}
+        {nodes.map(node => (
+          <NodeCard
+            key={node.id}
+            node={node}
+            onMouseDown={handleNodeMouseDown}
+          />
+        ))}
+      </svg>
+
+      {/* Zoom Controls */}
+      <div style={{
+        position: 'absolute', bottom: '24px', right: '24px',
+        display: 'flex', flexDirection: 'column', gap: '4px',
+        background: 'rgba(15,23,42,0.8)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '10px',
+        padding: '6px',
+        backdropFilter: 'blur(8px)',
+      }}>
+        {[
+          { label: '+', fn: () => setViewBox(p => ({ ...p, w: p.w * 0.8, h: p.h * 0.8 })) },
+          { label: '⊙', fn: () => setViewBox({ x: -20, y: -20, w: 1400, h: 900 }) },
+          { label: '−', fn: () => setViewBox(p => ({ ...p, w: p.w * 1.25, h: p.h * 1.25 })) },
+        ].map(({ label, fn }) => (
+          <button
+            key={label}
+            onClick={fn}
+            style={{
+              width: '36px', height: '36px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#94a3b8',
+              fontSize: '18px',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {nodes.length === 0 && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.2 }}>⬡</div>
+          <p style={{ color: '#334155', fontSize: '14px', fontWeight: 600, margin: 0 }}>
+            Paste a schema in the editor to visualize it
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
