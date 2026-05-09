@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import init, { parse_schema_wasm } from './core_pkg/core';
 import { Editor } from './components/Editor';
 import { Canvas } from './components/Canvas';
+import { NodeDetailDrawer } from './components/NodeDetailDrawer';
 import type { ParsedSchema, SchemaNode } from './types';
 import { LayoutDashboard, Share2, ExternalLink } from 'lucide-react';
 import { autoLayout } from './utils/layout';
@@ -35,6 +36,7 @@ function App() {
   const [schema, setSchema] = useState<ParsedSchema>({ nodes: [], edges: [] });
   const [wasmReady, setWasmReady] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   // Track which nodes the user has manually dragged — they stay pinned during re-layout
   const pinnedIds = useRef<Set<string>>(new Set());
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -192,7 +194,9 @@ function App() {
           <Canvas
             nodes={schema.nodes}
             edges={schema.edges}
+            selectedNodeId={selectedNodeId}
             onNodeMove={handleNodeMove}
+            onNodeClick={setSelectedNodeId}
           />
 
           {/* Status badges */}
@@ -218,6 +222,22 @@ function App() {
               </div>
             )}
           </div>
+
+          {/* Node Detail Drawer (Step 19) */}
+          {(() => {
+            if (!selectedNodeId) return null;
+            const node = schema.nodes.find(n => n.id === selectedNodeId);
+            if (!node) return null;
+            return (
+              <NodeDetailDrawer
+                node={node}
+                edges={schema.edges}
+                allNodes={schema.nodes}
+                onClose={() => setSelectedNodeId(null)}
+                onNavigate={id => setSelectedNodeId(id)}
+              />
+            );
+          })()}
         </section>
       </main>
     </div>

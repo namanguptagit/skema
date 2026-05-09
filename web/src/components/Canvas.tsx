@@ -5,22 +5,50 @@ import { NodeCard } from './NodeCard';
 interface CanvasProps {
   nodes: SchemaNode[];
   edges: SchemaEdge[];
+  selectedNodeId: string | null;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
+  onNodeClick: (nodeId: string | null) => void;
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
+interface Tooltip {
+  x: number;
+  y: number;
+  kind: string;
+  label?: string;
+  source: string;
+  target: string;
+}
+
+export const Canvas: React.FC<CanvasProps> = ({
+  nodes, edges, selectedNodeId, onNodeMove, onNodeClick,
+}) => {
   const [viewBox, setViewBox] = useState({ x: -20, y: -20, w: 1400, h: 900 });
   const [isPanning, setIsPanning] = useState(false);
   const [dragNode, setDragNode] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<Tooltip | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const mouseDownPos = useRef({ x: 0, y: 0 });
+  const didMove = useRef(false);
+  // Remember which node mouseDown started on (for click detection in mouseUp)
+  const mouseDownNodeId = useRef<string | null>(null);
 
   const svgScale = () => viewBox.w / (svgRef.current?.clientWidth || 1400);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Middle-click OR left-click on background → pan
-    if (e.button === 1 || e.button === 0) {
+  // Precompute which nodes are connected to selected
+  const connectedIds = new Set<string>();
+  if (selectedNodeId) {
+    for (const e of edges) {
+      if (e.sourceNodeId === selectedNodeId) connectedIds.add(e.targetNodeId);
+      if (e.targetNodeId === selectedNodeId) connectedIds.add(e.sourceNodeId);
+    }
+  }
+
+  const handleBgMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0 || e.button === 1) {
       setIsPanning(true);
+      didMove.current = false;
+      mouseDownPos.current = { x: e.clientX, y: e.clientY };
       lastMousePos.current = { x: e.clientX, y: e.clientY };
     }
   };
@@ -28,10 +56,21 @@ export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
   const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
     setDragNode(nodeId);
+    mouseDownNodeId.current = nodeId;
+    didMove.current = false;
+    mouseDownPos.current = { x: e.clientX, y: e.clientY };
     lastMousePos.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning && !dragNode) return;
+
+    const totalDx = Math.abs(e.clientX - mouseDownPos.current.x);
+    const totalDy = Math.abs(e.clientY - mouseDownPos.current.y);
+    if (totalDx > 3 || totalDy > 3) {
+      didMove.current = true;
+    }
+
     const dx = e.clientX - lastMousePos.current.x;
     const dy = e.clientY - lastMousePos.current.y;
     lastMousePos.current = { x: e.clientX, y: e.clientY };
@@ -52,7 +91,18 @@ export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
+    const wasDraggingNode = mouseDownNodeId.current;
+    if (!didMove.current) {
+      if (wasDraggingNode) {
+        // Click on a node → toggle selection
+        onNodeClick(wasDraggingNode === selectedNodeId ? null : wasDraggingNode);
+      } else {
+        // Click on background → deselect
+        onNodeClick(null);
+      }
+    }
+    mouseDownNodeId.current = null;
     setIsPanning(false);
     setDragNode(null);
   };
@@ -72,45 +122,67 @@ export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
     });
   };
 
+  const handleEdgeMouseEnter = (e: React.MouseEvent, edge: SchemaEdge) => {
+    const src = nodes.find(n => n.id === edge.sourceNodeId);
+    const tgt = nodes.find(n => n.id === edge.targetNodeId);
+    if (!src || !tgt) return;
+    const rect = svgRef.current?.getBoundingClientRect();
+    setTooltip({
+      x: e.clientX - (rect?.left ?? 0),
+      y: e.clientY - (rect?.top ?? 0),
+      kind: edge.kind,
+      label: edge.label,
+      source: src.displayName,
+      target: tgt.displayName,
+    });
+  };
+
+  const handleEdgeMouseLeave = () => setTooltip(null);
+
   return (
     <div style={{ width: '100%', height: '100%', background: '#020617', position: 'relative', overflow: 'hidden' }}>
       <svg
         ref={svgRef}
-        style={{ width: '100%', height: '100%', cursor: dragNode ? 'grabbing' : isPanning ? 'grabbing' : 'default' }}
+        style={{ width: '100%', height: '100%', cursor: dragNode ? 'grabbing' : 'default' }}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-        onMouseDown={handleMouseDown}
+        onMouseDown={handleBgMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
       >
         <defs>
-          {/* Dot grid */}
           <pattern id="dots" width="30" height="30" patternUnits="userSpaceOnUse">
             <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.06)" />
           </pattern>
-          {/* Arrowhead markers */}
           <marker id="arrow-ref" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" fillOpacity="0.7" />
+            <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" fillOpacity="0.8" />
           </marker>
           <marker id="arrow-ext" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#a855f7" fillOpacity="0.7" />
+            <polygon points="0 0, 8 3, 0 6" fill="#a855f7" fillOpacity="0.8" />
           </marker>
           <marker id="arrow-fk" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" fillOpacity="0.7" />
+            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" fillOpacity="0.8" />
+          </marker>
+          <marker id="arrow-ref-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" fillOpacity="0.15" />
+          </marker>
+          <marker id="arrow-ext-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#a855f7" fillOpacity="0.15" />
+          </marker>
+          <marker id="arrow-fk-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" fillOpacity="0.15" />
           </marker>
         </defs>
 
-        {/* Background */}
+        {/* Background dot grid */}
         <rect
-          x={viewBox.x - 5000}
-          y={viewBox.y - 5000}
-          width={viewBox.w + 10000}
-          height={viewBox.h + 10000}
+          x={viewBox.x - 5000} y={viewBox.y - 5000}
+          width={viewBox.w + 10000} height={viewBox.h + 10000}
           fill="url(#dots)"
         />
 
-        {/* Edges — render below nodes */}
+        {/* Edges */}
         {edges.map((edge, i) => {
           const src = nodes.find(n => n.id === edge.sourceNodeId);
           const tgt = nodes.find(n => n.id === edge.targetNodeId);
@@ -124,30 +196,42 @@ export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
           const ty = (tgt.y || 0) + nodeHeaderH / 2;
           const cx = (sx + tx) / 2;
 
-          const markerColor = edge.kind === 'extends' || edge.kind === 'implements'
-            ? 'url(#arrow-ext)'
-            : edge.kind === 'foreign-key'
-            ? 'url(#arrow-fk)'
-            : 'url(#arrow-ref)';
+          const isConnectedToSelected = !selectedNodeId
+            || edge.sourceNodeId === selectedNodeId
+            || edge.targetNodeId === selectedNodeId;
+
+          const dim = selectedNodeId !== null && !isConnectedToSelected;
 
           const strokeColor = edge.kind === 'extends' || edge.kind === 'implements'
-            ? '#a855f7'
-            : edge.kind === 'foreign-key'
-            ? '#f59e0b'
-            : '#3b82f6';
+            ? '#a855f7' : edge.kind === 'foreign-key' ? '#f59e0b' : '#3b82f6';
+
+          const markerSuffix = dim ? '-dim' : '';
+          const markerBase = edge.kind === 'extends' || edge.kind === 'implements'
+            ? 'arrow-ext' : edge.kind === 'foreign-key' ? 'arrow-fk' : 'arrow-ref';
 
           return (
             <g key={`edge-${i}`}>
+              {/* Wider invisible path for easier hover */}
+              <path
+                d={`M ${sx} ${sy} C ${cx + 30} ${sy}, ${cx - 30} ${ty}, ${tx} ${ty}`}
+                stroke="transparent"
+                strokeWidth="12"
+                fill="none"
+                style={{ cursor: 'crosshair' }}
+                onMouseEnter={e => handleEdgeMouseEnter(e, edge)}
+                onMouseLeave={handleEdgeMouseLeave}
+              />
               <path
                 d={`M ${sx} ${sy} C ${cx + 30} ${sy}, ${cx - 30} ${ty}, ${tx} ${ty}`}
                 stroke={strokeColor}
-                strokeWidth="1.5"
-                strokeOpacity="0.5"
+                strokeWidth={dim ? 1 : 1.5}
+                strokeOpacity={dim ? 0.08 : 0.55}
                 fill="none"
-                markerEnd={markerColor}
+                markerEnd={`url(#${markerBase}${markerSuffix})`}
                 strokeDasharray={edge.kind === 'references' ? '6 3' : undefined}
+                style={{ pointerEvents: 'none' }}
               />
-              {edge.label && (
+              {edge.label && !dim && (
                 <text
                   x={(sx + tx) / 2}
                   y={(sy + ty) / 2 - 6}
@@ -165,14 +249,49 @@ export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
         })}
 
         {/* Nodes */}
-        {nodes.map(node => (
-          <NodeCard
-            key={node.id}
-            node={node}
-            onMouseDown={handleNodeMouseDown}
-          />
-        ))}
+        {nodes.map(node => {
+          const isSelected = node.id === selectedNodeId;
+          const dimmed = selectedNodeId !== null && !isSelected && !connectedIds.has(node.id);
+          return (
+            <NodeCard
+              key={node.id}
+              node={node}
+              isSelected={isSelected}
+              dimmed={dimmed}
+              onMouseDown={handleNodeMouseDown}
+            />
+          );
+        })}
       </svg>
+
+      {/* Edge Tooltip (Step 18) */}
+      {tooltip && (
+        <div style={{
+          position: 'absolute',
+          left: tooltip.x + 12,
+          top: tooltip.y - 12,
+          background: 'rgba(10,16,30,0.95)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          pointerEvents: 'none',
+          zIndex: 200,
+          backdropFilter: 'blur(8px)',
+          minWidth: '140px',
+        }}>
+          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
+            {tooltip.kind}
+          </div>
+          <div style={{ fontSize: '12px', color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace' }}>
+            {tooltip.source} → {tooltip.target}
+          </div>
+          {tooltip.label && (
+            <div style={{ fontSize: '11px', color: '#60a5fa', marginTop: '3px' }}>
+              via <em>{tooltip.label}</em>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Zoom Controls */}
       <div style={{
@@ -195,13 +314,8 @@ export const Canvas: React.FC<CanvasProps> = ({ nodes, edges, onNodeMove }) => {
             style={{
               width: '36px', height: '36px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#94a3b8',
-              fontSize: '18px',
-              cursor: 'pointer',
-              transition: 'background 0.15s',
+              background: 'transparent', border: 'none', borderRadius: '6px',
+              color: '#94a3b8', fontSize: '18px', cursor: 'pointer',
             }}
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
