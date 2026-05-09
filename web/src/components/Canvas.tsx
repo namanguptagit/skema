@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import type { SchemaNode, SchemaEdge } from '../types';
+import { Search, Filter, Layers } from 'lucide-react';
+import type { SchemaNode, SchemaEdge, NodeKind, RelationshipKind } from '../types';
 import { NodeCard } from './NodeCard';
 
 interface CanvasProps {
@@ -8,6 +9,12 @@ interface CanvasProps {
   selectedNodeId: string | null;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
   onNodeClick: (nodeId: string | null) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  activeKinds: Set<NodeKind>;
+  setActiveKinds: React.Dispatch<React.SetStateAction<Set<NodeKind>>>;
+  activeEdges: Set<RelationshipKind>;
+  setActiveEdges: React.Dispatch<React.SetStateAction<Set<RelationshipKind>>>;
 }
 
 interface Tooltip {
@@ -21,6 +28,7 @@ interface Tooltip {
 
 export const Canvas: React.FC<CanvasProps> = ({
   nodes, edges, selectedNodeId, onNodeMove, onNodeClick,
+  searchQuery, setSearchQuery, activeKinds, setActiveKinds, activeEdges, setActiveEdges
 }) => {
   const [viewBox, setViewBox] = useState({ x: -20, y: -20, w: 1400, h: 900 });
   const [isPanning, setIsPanning] = useState(false);
@@ -184,6 +192,8 @@ export const Canvas: React.FC<CanvasProps> = ({
 
         {/* Edges */}
         {edges.map((edge, i) => {
+          if (!activeEdges.has(edge.kind)) return null;
+
           const src = nodes.find(n => n.id === edge.sourceNodeId);
           const tgt = nodes.find(n => n.id === edge.targetNodeId);
           if (!src || !tgt) return null;
@@ -250,8 +260,18 @@ export const Canvas: React.FC<CanvasProps> = ({
 
         {/* Nodes */}
         {nodes.map(node => {
+          if (!activeKinds.has(node.kind)) return null;
+
           const isSelected = node.id === selectedNodeId;
-          const dimmed = selectedNodeId !== null && !isSelected && !connectedIds.has(node.id);
+          
+          let matchesSearch = true;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            matchesSearch = node.displayName.toLowerCase().includes(q) || 
+                            node.fields.some(f => f.name.toLowerCase().includes(q) || f.ty.toLowerCase().includes(q));
+          }
+
+          const dimmed = !matchesSearch || (selectedNodeId !== null && !isSelected && !connectedIds.has(node.id));
           return (
             <NodeCard
               key={node.id}
@@ -323,6 +343,65 @@ export const Canvas: React.FC<CanvasProps> = ({
             {label}
           </button>
         ))}
+      </div>
+
+      {/* Top Toolbar */}
+      <div style={{
+        position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', gap: '8px', zIndex: 50,
+      }}>
+        {/* Search */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          background: 'rgba(15,23,42,0.85)', padding: '6px 12px',
+          borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(12px)',
+        }}>
+          <Search size={14} color="#94a3b8" />
+          <input 
+            type="text" 
+            placeholder="Search nodes, fields, types..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              background: 'transparent', border: 'none', outline: 'none',
+              color: '#f8fafc', fontSize: '12px', width: '200px',
+              fontFamily: 'system-ui, sans-serif'
+            }}
+          />
+        </div>
+
+        {/* Kinds Filter Toggle */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '4px',
+          background: 'rgba(15,23,42,0.85)', padding: '4px 6px',
+          borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(12px)',
+        }}>
+          {['interface', 'enum', 'class', 'table'].map(kind => {
+            const isActive = activeKinds.has(kind as NodeKind);
+            return (
+              <button
+                key={kind}
+                onClick={() => {
+                  const next = new Set(activeKinds);
+                  if (isActive) next.delete(kind as NodeKind);
+                  else next.add(kind as NodeKind);
+                  setActiveKinds(next);
+                }}
+                style={{
+                  padding: '4px 8px', borderRadius: '8px', border: 'none',
+                  background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color: isActive ? '#f8fafc' : '#64748b',
+                  fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                  textTransform: 'uppercase', letterSpacing: '0.5px'
+                }}
+              >
+                {kind}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Empty State */}

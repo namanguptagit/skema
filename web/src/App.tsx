@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import init, { parse_schema_wasm } from './core_pkg/core';
 import { Editor } from './components/Editor';
+import { MethodTree } from './components/MethodTree';
 import { Canvas } from './components/Canvas';
 import { NodeDetailDrawer } from './components/NodeDetailDrawer';
-import type { ParsedSchema, SchemaNode } from './types';
-import { LayoutDashboard, Share2, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Share2, ExternalLink, Download, Image as ImageIcon, FileJson, Link } from 'lucide-react';
 import { autoLayout } from './utils/layout';
 
 const DEFAULT_SCHEMA = `interface Profile {
@@ -33,18 +33,33 @@ const enum Role {
 
 const STORAGE_KEY = 'skema_state';
 
+type SchemaFile = { id: string; name: string; content: string; };
+
 function App() {
   const savedPositions = useRef<Record<string, {x: number, y: number}>>({});
-  const [input, setInput] = useState(() => {
+  const [files, setFiles] = useState<SchemaFile[]>(() => {
+    if (window.location.hash.length > 1) {
+      try {
+        const decoded = decodeURIComponent(escape(atob(window.location.hash.slice(1))));
+        try {
+          const parsed = JSON.parse(decoded);
+          if (Array.isArray(parsed)) return parsed;
+        } catch(e) {}
+        return [{ id: '1', name: 'shared.ts', content: decoded }];
+      } catch(e) {}
+    }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.input) return parsed.input;
+        if (parsed.files) return parsed.files;
+        if (parsed.input) return [{ id: '1', name: 'schema.ts', content: parsed.input }];
       }
     } catch (e) {}
-    return DEFAULT_SCHEMA;
+    return [{ id: '1', name: 'schema.ts', content: DEFAULT_SCHEMA }];
   });
+  const [activeFileId, setActiveFileId] = useState<string>('1');
+
   const [schema, setSchema] = useState<ParsedSchema>({ nodes: [], edges: [] });
   const [wasmReady, setWasmReady] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -52,6 +67,58 @@ function App() {
   // Track which nodes the user has manually dragged — they stay pinned during re-layout
   const pinnedIds = useRef<Set<string>>(new Set());
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeKinds, setActiveKinds] = useState<Set<NodeKind>>(
+    new Set(['interface', 'enum', 'class', 'table', 'method', 'scalar'])
+  );
+  const [activeEdges, setActiveEdges] = useState<Set<RelationshipKind>>(
+    new Set(['extends', 'implements', 'references', 'returns', 'has-field', 'foreign-key'])
+  );
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const exportSvg = () => {
+    const svgEl = document.querySelector('svg');
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'skema.svg'; link.click();
+    setShowExportMenu(false);
+  };
+
+  const exportPng = () => {
+    const svgEl = document.querySelector('svg');
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width; canvas.height = img.height;
+      if (ctx) ctx.drawImage(img, 0, 0);
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png'); link.download = 'skema.png'; link.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    setShowExportMenu(false);
+  };
+
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'skema.json'; link.click();
+    setShowExportMenu(false);
+  };
+
+  const shareLink = () => {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(files))));
+    const url = `${window.location.origin}${window.location.pathname}#${encoded}`;
+    navigator.clipboard.writeText(url).then(() => alert("Shareable link copied to clipboard!"));
+    setShowExportMenu(false);
+  };
 
   useEffect(() => {
     try {
@@ -67,7 +134,7 @@ function App() {
     init().then(() => setWasmReady(true));
   }, []);
 
-  // Save to localStorage whenever input or positions change
+  // Save to localStorage whenever files or positions change
   useEffect(() => {
     if (schema.nodes.length === 0) return;
     const positions: Record<string, {x: number, y: number}> = {};
@@ -76,18 +143,25 @@ function App() {
         positions[n.id] = { x: n.x, y: n.y };
       }
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ input, positions }));
-  }, [input, schema.nodes]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ files, positions }));
+  }, [files, schema.nodes]);
 
-  const runParse = useCallback((text: string) => {
+  const runParse = useCallback((currentFiles: SchemaFile[]) => {
     if (!wasmReady) return;
     try {
-      const result = parse_schema_wasm(text);
+      let allNodes: SchemaNode[] = [];
+      let allEdges: any[] = [];
+      
+      currentFiles.forEach(f => {
+        if (!f.content.trim()) return;
+        const result = parse_schema_wasm(f.content);
+        allNodes = allNodes.concat(result.nodes);
+        allEdges = allEdges.concat(result.edges);
+      });
+      
       setParseError(null);
       setSchema(prev => {
-        const incomingNodes = result.nodes as SchemaNode[];
-        // Preserve positions of existing nodes (especially pinned ones)
-        const withPositions = incomingNodes.map(node => {
+        const withPositions = allNodes.map(node => {
           const existing = prev.nodes.find(n => n.id === node.id);
           if (existing && (existing.x !== undefined)) {
             // Keep the old position — layout won't touch pinned nodes
@@ -101,29 +175,29 @@ function App() {
         // Nodes with no position yet need to be laid out
         const needsLayout = withPositions.some(n => n.x === undefined);
         const laid = needsLayout
-          ? autoLayout(withPositions, result.edges, pinnedIds.current)
+          ? autoLayout(withPositions, allEdges, pinnedIds.current)
           : withPositions;
-        return { nodes: laid, edges: result.edges };
+        return { nodes: laid, edges: allEdges };
       });
     } catch (e) {
       setParseError(String(e));
     }
   }, [wasmReady]);
 
-  // Debounced parse: fires 600ms after the user stops typing
+  // Debounced parse
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
-      runParse(input);
+      runParse(files);
     }, 600);
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [input, runParse]);
+  }, [files, runParse]);
 
   // Parse immediately once WASM becomes ready
   useEffect(() => {
-    if (wasmReady) runParse(input);
+    if (wasmReady) runParse(files);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wasmReady]);
 
@@ -192,15 +266,44 @@ function App() {
           >
             ⟳ Re-layout
           </button>
-          <button style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '8px 16px', borderRadius: '8px',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#e2e8f0', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-          }}>
-            <Share2 size={14} /> Export
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', borderRadius: '8px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#e2e8f0', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+              }}>
+              <Share2 size={14} /> Export
+            </button>
+            {showExportMenu && (
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: '8px',
+                background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px', padding: '4px', display: 'flex', flexDirection: 'column',
+                minWidth: '160px', zIndex: 100, backdropFilter: 'blur(12px)'
+              }}>
+                {(() => {
+                  const menuBtnStyle = {
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 12px', background: 'transparent', border: 'none',
+                    color: '#e2e8f0', fontSize: '13px', cursor: 'pointer',
+                    textAlign: 'left' as const, borderRadius: '4px'
+                  };
+                  return (
+                    <>
+                      <button onClick={exportSvg} style={menuBtnStyle}><Download size={14} /> Export SVG</button>
+                      <button onClick={exportPng} style={menuBtnStyle}><ImageIcon size={14} /> Export PNG</button>
+                      <button onClick={exportJson} style={menuBtnStyle}><FileJson size={14} /> Export JSON</button>
+                      <button onClick={shareLink} style={menuBtnStyle}><Link size={14} /> Copy Share Link</button>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
           <a
             href="https://github.com"
             target="_blank"
@@ -223,8 +326,49 @@ function App() {
           flexDirection: 'column',
           flexShrink: 0,
         }}>
-          <Editor value={input} onChange={setInput} parseError={parseError} />
+          {/* File Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #1e293b', background: '#0f172a', overflowX: 'auto' }}>
+            {files.map(f => (
+              <div 
+                key={f.id}
+                onClick={() => setActiveFileId(f.id)}
+                style={{
+                  padding: '8px 16px', fontSize: '12px', cursor: 'pointer',
+                  borderRight: '1px solid #1e293b',
+                  color: activeFileId === f.id ? '#e2e8f0' : '#64748b',
+                  background: activeFileId === f.id ? 'transparent' : 'rgba(0,0,0,0.2)',
+                  borderBottom: activeFileId === f.id ? '2px solid #3b82f6' : '2px solid transparent'
+                }}>
+                {f.name}
+              </div>
+            ))}
+            <div 
+              onClick={() => {
+                const newId = Date.now().toString();
+                setFiles([...files, { id: newId, name: `schema_${files.length + 1}.txt`, content: '' }]);
+                setActiveFileId(newId);
+              }}
+              style={{
+                padding: '8px 16px', fontSize: '16px', cursor: 'pointer', color: '#64748b',
+                display: 'flex', alignItems: 'center'
+              }}>
+              +
+            </div>
+          </div>
+
+          <Editor 
+            value={files.find(f => f.id === activeFileId)?.content || ''} 
+            onChange={(val) => {
+              setFiles(files.map(f => f.id === activeFileId ? { ...f, content: val } : f));
+            }} 
+            parseError={parseError} 
+          />
         </aside>
+
+        <MethodTree 
+          nodes={schema.nodes} 
+          onNavigate={(id) => setSelectedNodeId(id)} 
+        />
 
         {/* Canvas Area */}
         <section style={{ flex: 1, position: 'relative' }}>
@@ -234,6 +378,12 @@ function App() {
             selectedNodeId={selectedNodeId}
             onNodeMove={handleNodeMove}
             onNodeClick={setSelectedNodeId}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            activeKinds={activeKinds}
+            setActiveKinds={setActiveKinds}
+            activeEdges={activeEdges}
+            setActiveEdges={setActiveEdges}
           />
 
           {/* Status badges */}
