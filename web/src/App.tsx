@@ -4,6 +4,7 @@ import { Editor } from './components/Editor';
 import { Canvas } from './components/Canvas';
 import type { ParsedSchema, SchemaNode } from './types';
 import { LayoutDashboard, Share2, ExternalLink } from 'lucide-react';
+import { autoLayout } from './utils/layout';
 
 const DEFAULT_SCHEMA = `interface Profile {
   bio: string;
@@ -34,6 +35,8 @@ function App() {
   const [schema, setSchema] = useState<ParsedSchema>({ nodes: [], edges: [] });
   const [wasmReady, setWasmReady] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  // Track which nodes the user has manually dragged — they stay pinned during re-layout
+  const pinnedIds = useRef<Set<string>>(new Set());
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -45,23 +48,25 @@ function App() {
     try {
       const result = parse_schema_wasm(text);
       setParseError(null);
-      // Keep existing node positions when re-parsing
       setSchema(prev => {
-        const newNodes = (result.nodes as SchemaNode[]).map((node, i) => {
+        const incomingNodes = result.nodes as SchemaNode[];
+        // Preserve positions of existing nodes (especially pinned ones)
+        const withPositions = incomingNodes.map(node => {
           const existing = prev.nodes.find(n => n.id === node.id);
-          if (existing) {
+          if (existing && (existing.x !== undefined)) {
+            // Keep the old position — layout won't touch pinned nodes
             return { ...node, x: existing.x, y: existing.y };
           }
-          return {
-            ...node,
-            x: (i % 3) * 300 + 60,
-            y: Math.floor(i / 3) * 260 + 60,
-          };
+          return node; // new node — let layout place it
         });
-        return { nodes: newNodes, edges: result.edges };
+        // Nodes with no position yet need to be laid out
+        const needsLayout = withPositions.some(n => n.x === undefined);
+        const laid = needsLayout
+          ? autoLayout(withPositions, result.edges, pinnedIds.current)
+          : withPositions;
+        return { nodes: laid, edges: result.edges };
       });
     } catch (e) {
-      // On error, keep the last good schema on the canvas, just show error state
       setParseError(String(e));
     }
   }, [wasmReady]);
@@ -84,10 +89,21 @@ function App() {
   }, [wasmReady]);
 
   const handleNodeMove = (nodeId: string, x: number, y: number) => {
+    // Mark as pinned so force-layout won't touch it on re-parse
+    pinnedIds.current.add(nodeId);
     setSchema(prev => ({
       ...prev,
       nodes: prev.nodes.map(n => n.id === nodeId ? { ...n, x, y } : n)
     }));
+  };
+
+  // "Re-layout" button: clear all pins and run layout fresh
+  const handleRelayout = () => {
+    pinnedIds.current.clear();
+    setSchema(prev => {
+      const unpositioned = prev.nodes.map(n => ({ ...n, x: undefined, y: undefined }));
+      return { ...prev, nodes: autoLayout(unpositioned, prev.edges) };
+    });
   };
 
   return (
@@ -124,6 +140,19 @@ function App() {
           <div style={{ fontSize: '12px', color: '#64748b' }}>
             {schema.nodes.length} nodes · {schema.edges.length} edges
           </div>
+          <button
+            onClick={handleRelayout}
+            title="Re-run auto-layout (clears manual positions)"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 16px', borderRadius: '8px',
+              background: 'rgba(99,102,241,0.12)',
+              border: '1px solid rgba(99,102,241,0.3)',
+              color: '#a5b4fc', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            ⟳ Re-layout
+          </button>
           <button style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '8px 16px', borderRadius: '8px',
