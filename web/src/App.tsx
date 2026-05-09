@@ -31,8 +31,20 @@ const enum Role {
   ADMIN = "ADMIN",
 }`;
 
+const STORAGE_KEY = 'skema_state';
+
 function App() {
-  const [input, setInput] = useState(DEFAULT_SCHEMA);
+  const savedPositions = useRef<Record<string, {x: number, y: number}>>({});
+  const [input, setInput] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.input) return parsed.input;
+      }
+    } catch (e) {}
+    return DEFAULT_SCHEMA;
+  });
   const [schema, setSchema] = useState<ParsedSchema>({ nodes: [], edges: [] });
   const [wasmReady, setWasmReady] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -42,8 +54,30 @@ function App() {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.positions) {
+          savedPositions.current = parsed.positions;
+          Object.keys(parsed.positions).forEach(id => pinnedIds.current.add(id));
+        }
+      }
+    } catch (e) {}
     init().then(() => setWasmReady(true));
   }, []);
+
+  // Save to localStorage whenever input or positions change
+  useEffect(() => {
+    if (schema.nodes.length === 0) return;
+    const positions: Record<string, {x: number, y: number}> = {};
+    schema.nodes.forEach(n => {
+      if (n.x !== undefined && n.y !== undefined) {
+        positions[n.id] = { x: n.x, y: n.y };
+      }
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ input, positions }));
+  }, [input, schema.nodes]);
 
   const runParse = useCallback((text: string) => {
     if (!wasmReady) return;
@@ -58,6 +92,9 @@ function App() {
           if (existing && (existing.x !== undefined)) {
             // Keep the old position — layout won't touch pinned nodes
             return { ...node, x: existing.x, y: existing.y };
+          }
+          if (savedPositions.current[node.id]) {
+            return { ...node, x: savedPositions.current[node.id].x, y: savedPositions.current[node.id].y };
           }
           return node; // new node — let layout place it
         });
