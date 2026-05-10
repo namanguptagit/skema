@@ -4,7 +4,7 @@ import { Editor } from './components/Editor';
 import { MethodTree } from './components/MethodTree';
 import { Canvas } from './components/Canvas';
 import { NodeDetailDrawer } from './components/NodeDetailDrawer';
-import { LayoutDashboard, Share2, ExternalLink, Download, Image as ImageIcon, FileJson, Link } from 'lucide-react';
+import { LayoutDashboard, Share2, ExternalLink, Download, Image as ImageIcon, FileJson, Link, X } from 'lucide-react';
 import { autoLayout } from './utils/layout';
 
 const DEFAULT_SCHEMA = `interface Profile {
@@ -220,32 +220,34 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', background: '#020617', color: '#e2e8f0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', background: 'var(--bg-obsidian)', color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
       {/* Header */}
       <header style={{
         height: '64px',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid var(--border-stark)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 24px',
-        background: 'rgba(15, 23, 42, 0.8)',
-        backdropFilter: 'blur(12px)',
+        background: 'rgba(5, 5, 5, 0.4)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         flexShrink: 0,
+        zIndex: 100,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '40px', height: '40px',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            borderRadius: '10px',
+            width: '36px', height: '36px',
+            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-amber))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)',
+            borderRadius: '10px',
+            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
           }}>
-            <LayoutDashboard size={22} color="white" />
+            <LayoutDashboard size={18} color="#ffffff" />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', color: 'white' }}>SKEMA</h1>
-            <p style={{ margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' }}>Schema Visualizer</p>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', color: 'var(--text-main)' }}>Skema</h1>
+            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '1px' }}>SCHEMA VISUALIZER</p>
           </div>
         </div>
 
@@ -270,13 +272,24 @@ function App() {
             <button 
               onClick={() => setShowExportMenu(!showExportMenu)}
               style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '8px 16px', borderRadius: '8px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#e2e8f0', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-              }}>
-              <Share2 size={14} /> Export
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 16px', borderRadius: '0px',
+                background: 'var(--bg-obsidian)',
+                border: '2px solid var(--border-stark)',
+                color: 'var(--text-main)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--accent-amber)';
+                e.currentTarget.style.color = 'var(--accent-amber)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--border-stark)';
+                e.currentTarget.style.color = 'var(--text-main)';
+              }}
+            >
+              <Share2 size={14} /> EXPORT
             </button>
             {showExportMenu && (
               <div style={{
@@ -320,26 +333,56 @@ function App() {
         {/* Sidebar Editor */}
         <aside style={{
           width: '420px',
-          borderRight: '1px solid rgba(255,255,255,0.05)',
-          background: 'rgba(15, 23, 42, 0.4)',
+          borderRight: '2px solid var(--border-stark)',
+          background: 'var(--bg-panel)',
           display: 'flex',
           flexDirection: 'column',
           flexShrink: 0,
         }}>
           {/* File Tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #1e293b', background: '#0f172a', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', borderBottom: '2px solid var(--border-stark)', background: 'var(--bg-obsidian)', overflowX: 'auto' }}>
             {files.map(f => (
               <div 
                 key={f.id}
                 onClick={() => setActiveFileId(f.id)}
                 style={{
-                  padding: '8px 16px', fontSize: '12px', cursor: 'pointer',
-                  borderRight: '1px solid #1e293b',
-                  color: activeFileId === f.id ? '#e2e8f0' : '#64748b',
-                  background: activeFileId === f.id ? 'transparent' : 'rgba(0,0,0,0.2)',
-                  borderBottom: activeFileId === f.id ? '2px solid #3b82f6' : '2px solid transparent'
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '10px 16px', fontSize: '12px', cursor: 'pointer',
+                  borderRight: '2px solid var(--border-stark)',
+                  color: activeFileId === f.id ? 'var(--bg-obsidian)' : 'var(--text-muted)',
+                  background: activeFileId === f.id ? 'var(--accent-copper)' : 'transparent',
+                  fontWeight: activeFileId === f.id ? 700 : 400,
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap'
                 }}>
-                {f.name}
+                <span>{f.name}</span>
+                {files.length > 1 && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newFiles = files.filter(file => file.id !== f.id);
+                      setFiles(newFiles);
+                      if (activeFileId === f.id) {
+                        setActiveFileId(newFiles[0].id);
+                      }
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      borderRadius: '50%', padding: '2px',
+                      background: activeFileId === f.id ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)',
+                      color: activeFileId === f.id ? 'var(--bg-obsidian)' : 'var(--text-muted)',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
+                    }}
+                  >
+                    <X size={12} />
+                  </div>
+                )}
               </div>
             ))}
             <div 
@@ -349,9 +392,12 @@ function App() {
                 setActiveFileId(newId);
               }}
               style={{
-                padding: '8px 16px', fontSize: '16px', cursor: 'pointer', color: '#64748b',
-                display: 'flex', alignItems: 'center'
-              }}>
+                padding: '10px 16px', fontSize: '16px', cursor: 'pointer', color: 'var(--text-muted)',
+                display: 'flex', alignItems: 'center', background: 'transparent'
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
               +
             </div>
           </div>
@@ -371,43 +417,59 @@ function App() {
         />
 
         {/* Canvas Area */}
-        <section style={{ flex: 1, position: 'relative' }}>
-          <Canvas
-            nodes={schema.nodes}
-            edges={schema.edges}
-            selectedNodeId={selectedNodeId}
-            onNodeMove={handleNodeMove}
-            onNodeClick={setSelectedNodeId}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            activeKinds={activeKinds}
-            setActiveKinds={setActiveKinds}
-            activeEdges={activeEdges}
-            setActiveEdges={setActiveEdges}
-          />
+        <section style={{ flex: 1, display: 'flex', position: 'relative' }}>
+          
+          {/* Main Canvas Container */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            <Canvas
+              nodes={schema.nodes}
+              edges={schema.edges}
+              selectedNodeId={selectedNodeId}
+              onNodeMove={handleNodeMove}
+              onNodeClick={setSelectedNodeId}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              activeKinds={activeKinds}
+              setActiveKinds={setActiveKinds}
+              activeEdges={activeEdges}
+              setActiveEdges={setActiveEdges}
+            />
 
-          {/* Status badges */}
-          <div style={{
-            position: 'absolute', top: '20px', left: '20px',
-            display: 'flex', gap: '10px',
-          }}>
-            <div className="glass" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                background: wasmReady ? '#10b981' : '#f59e0b',
-                boxShadow: wasmReady ? '0 0 6px #10b981' : '0 0 6px #f59e0b',
-              }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#94a3b8' }}>
-                {wasmReady ? 'WASM Active' : 'Initializing…'}
-              </span>
-            </div>
-            {parseError && (
-              <div className="glass" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', borderColor: 'rgba(239,68,68,0.3)' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  Parse error
+            {/* Status badges / Telemetry strip */}
+            <div style={{
+              position: 'absolute', bottom: '24px', left: '24px',
+              display: 'flex', gap: '8px',
+              zIndex: 10,
+              pointerEvents: 'none'
+            }}>
+              <div className="glass" style={{ 
+                padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px',
+                borderRadius: '20px',
+              }}>
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: wasmReady ? 'var(--accent-gold)' : 'var(--accent-rust)',
+                  boxShadow: wasmReady ? '0 0 8px var(--accent-gold)' : '0 0 8px var(--accent-rust)',
+                }} />
+                <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 500, letterSpacing: '0.5px' }}>
+                  WASM {wasmReady ? 'Active' : 'Init'}
                 </span>
               </div>
-            )}
+              
+              <div className="glass" style={{ 
+                padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px',
+                borderRadius: '20px',
+              }}>
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: parseError ? '#ef4444' : 'var(--accent-amber)',
+                  boxShadow: parseError ? '0 0 8px #ef4444' : '0 0 8px var(--accent-amber)',
+                }} />
+                <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 500, letterSpacing: '0.5px' }}>
+                  AST {parseError ? 'Error' : 'Synced'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Node Detail Drawer (Step 19) */}
@@ -416,13 +478,15 @@ function App() {
             const node = schema.nodes.find(n => n.id === selectedNodeId);
             if (!node) return null;
             return (
-              <NodeDetailDrawer
-                node={node}
-                edges={schema.edges}
-                allNodes={schema.nodes}
-                onClose={() => setSelectedNodeId(null)}
-                onNavigate={id => setSelectedNodeId(id)}
-              />
+              <div style={{ width: '336px', flexShrink: 0, position: 'relative', zIndex: 100 }}>
+                <NodeDetailDrawer
+                  node={node}
+                  edges={schema.edges}
+                  allNodes={schema.nodes}
+                  onClose={() => setSelectedNodeId(null)}
+                  onNavigate={id => setSelectedNodeId(id)}
+                />
+              </div>
             );
           })()}
         </section>
