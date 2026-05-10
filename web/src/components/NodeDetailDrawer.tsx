@@ -11,12 +11,12 @@ interface NodeDetailDrawerProps {
 }
 
 const KIND_COLOR: Record<string, string> = {
-  interface: '#3b82f6',
-  enum:      '#a855f7',
-  class:     '#10b981',
-  table:     '#34d399',
-  method:    '#818cf8',
-  scalar:    '#78716c',
+  interface: 'var(--accent-gold)',
+  enum:      'var(--accent-amber)',
+  class:     'var(--accent-copper)',
+  table:     'var(--accent-rust)',
+  method:    'var(--accent-earth)',
+  scalar:    'var(--accent-sand)',
 };
 
 const MODIFIER_BADGE: Record<string, { label: string; color: string }> = {
@@ -39,16 +39,20 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
   return (
     <div
       style={{
-        position: 'absolute',
-        top: 0, right: 0, bottom: 0,
-        width: '320px',
-        background: 'rgba(10, 16, 30, 0.97)',
-        borderLeft: `1px solid ${color}40`,
+        position: 'relative',
+        height: '100%',
+        margin: '16px 16px 16px 0',
+        background: 'rgba(5, 5, 5, 0.5)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid var(--border-stark)',
+        borderRadius: '16px',
+        boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 100,
-        backdropFilter: 'blur(16px)',
         animation: 'slideIn 0.18s ease-out',
+        fontFamily: 'var(--font-mono)'
       }}
     >
       <style>{`
@@ -60,36 +64,38 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
 
       {/* Header */}
       <div style={{
-        padding: '20px 20px 16px',
-        borderBottom: `1px solid ${color}30`,
+        padding: '24px 20px 16px',
+        borderBottom: `1px solid var(--border-stark)`,
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px',
       }}>
         <div>
           <div style={{
             display: 'inline-block',
-            padding: '2px 10px', borderRadius: '20px',
+            padding: '4px 10px', borderRadius: '12px',
             background: `${color}20`, border: `1px solid ${color}40`,
-            fontSize: '10px', fontWeight: 700, color, letterSpacing: '1px',
+            fontSize: '10px', fontWeight: 600, color: color, letterSpacing: '0.5px',
             textTransform: 'uppercase', marginBottom: '8px',
           }}>
             {node.kind}
           </div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'white', letterSpacing: '-0.3px' }}>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: 'var(--text-main)', letterSpacing: '-0.5px', fontFamily: 'var(--font-display)' }}>
             {node.displayName}
           </h2>
-          <div style={{ fontSize: '11px', color: '#475569', marginTop: '4px' }}>
-            {node.format} · {node.fields.length} field{node.fields.length !== 1 ? 's' : ''}
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 500 }}>
+            {node.format} • {node.fields.length} field{node.fields.length !== 1 ? 's' : ''}
           </div>
         </div>
         <button
           onClick={onClose}
           style={{
-            padding: '6px', borderRadius: '6px', border: 'none',
-            background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: '#64748b',
-            flexShrink: 0,
+            padding: '6px', borderRadius: '50%', border: 'none',
+            background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)',
+            flexShrink: 0, transition: 'all 0.2s',
           }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'var(--text-main)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
         >
-          <X size={16} />
+          <X size={18} />
         </button>
       </div>
 
@@ -99,31 +105,30 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
         {/* Fields */}
         {node.fields.length > 0 && (
           <section>
-            <h3 style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Fields
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {node.fields.map(field => (
                 <div key={field.name} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '8px 12px', borderRadius: '8px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.04)',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.05)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{
-                      fontFamily: 'JetBrains Mono, Fira Code, monospace',
-                      fontSize: '13px',
-                      color: field.modifiers?.includes('optional') ? '#94a3b8' : '#cbd5e1',
+                      fontSize: '13px', fontWeight: 500,
+                      color: field.modifiers?.includes('optional') ? 'var(--text-muted)' : 'var(--text-main)',
                     }}>
                       {field.name}{field.modifiers?.includes('optional') ? '?' : ''}
                     </span>
                     {field.modifiers?.filter(m => m !== 'optional').map(mod => (
                       <span key={mod} style={{
-                        fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px',
+                        fontSize: '9px', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
                         background: `${MODIFIER_BADGE[mod]?.color ?? '#64748b'}20`,
-                        color: MODIFIER_BADGE[mod]?.color ?? '#64748b',
-                        border: `1px solid ${MODIFIER_BADGE[mod]?.color ?? '#64748b'}30`,
+                        color: MODIFIER_BADGE[mod]?.color ?? '#64748b', textTransform: 'uppercase',
+                        border: `1px solid ${MODIFIER_BADGE[mod]?.color ?? '#64748b'}40`,
                       }}>
                         {MODIFIER_BADGE[mod]?.label ?? mod}
                       </span>
@@ -131,8 +136,7 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
                   </div>
                   {node.kind !== 'enum' && (
                     <span style={{
-                      fontFamily: 'JetBrains Mono, Fira Code, monospace',
-                      fontSize: '12px', color,
+                      fontSize: '12px', color, fontWeight: 500
                     }}>
                       {field.ty}{field.modifiers?.includes('array') ? '[]' : ''}
                     </span>
@@ -146,26 +150,30 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
         {/* Outgoing edges */}
         {outgoing.length > 0 && (
           <section>
-            <h3 style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
               References
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {outgoing.map((edge, i) => {
                 const target = nodeById(edge.targetNodeId);
                 if (!target) return null;
-                const tc = KIND_COLOR[target.kind] ?? '#3b82f6';
+                const tc = KIND_COLOR[target.kind] ?? 'var(--accent-gold)';
                 return (
                   <button key={i} onClick={() => onNavigate(target.id)} style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
                     padding: '8px 12px', borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
                     cursor: 'pointer', textAlign: 'left', width: '100%',
-                  }}>
-                    <ArrowRight size={12} color="#475569" style={{ flexShrink: 0 }} />
-                    <span style={{ fontSize: '11px', color: '#64748b', flexShrink: 0 }}>
-                      {edge.kind}{edge.label ? ` · ${edge.label}` : ''}
+                    fontFamily: 'var(--font-mono)', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = tc; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; }}
+                  >
+                    <ArrowRight size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, fontWeight: 500, textTransform: 'uppercase' }}>
+                      {edge.kind}
                     </span>
-                    <span style={{ fontWeight: 700, fontSize: '13px', color: tc, marginLeft: 'auto' }}>
+                    <span style={{ fontWeight: 600, fontSize: '13px', color: tc, marginLeft: 'auto' }}>
                       {target.displayName}
                     </span>
                   </button>
@@ -178,26 +186,30 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
         {/* Incoming edges */}
         {incoming.length > 0 && (
           <section>
-            <h3 style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-              Referenced by
+            <h3 style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Referenced By
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {incoming.map((edge, i) => {
                 const src = nodeById(edge.sourceNodeId);
                 if (!src) return null;
-                const sc = KIND_COLOR[src.kind] ?? '#3b82f6';
+                const sc = KIND_COLOR[src.kind] ?? 'var(--accent-gold)';
                 return (
                   <button key={i} onClick={() => onNavigate(src.id)} style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
                     padding: '8px 12px', borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
                     cursor: 'pointer', textAlign: 'left', width: '100%',
-                  }}>
-                    <ArrowLeft size={12} color="#475569" style={{ flexShrink: 0 }} />
-                    <span style={{ fontWeight: 700, fontSize: '13px', color: sc }}>
+                    fontFamily: 'var(--font-mono)', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = sc; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; }}
+                  >
+                    <ArrowLeft size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600, fontSize: '13px', color: sc }}>
                       {src.displayName}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#64748b', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: 'auto', fontWeight: 500, textTransform: 'uppercase' }}>
                       {edge.kind}
                     </span>
                   </button>
