@@ -1,36 +1,49 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AlertCircle } from 'lucide-react';
+import CodeMirror from '@uiw/react-codemirror';
+import { getLanguageExtensions } from '../editor/languageFromFileName';
+import { skemaEditorChrome, skemaSyntaxHighlighting } from '../editor/skemaCodemirrorTheme';
 
 interface EditorProps {
+  fileName: string;
   value: string;
   onChange: (value: string) => void;
   parseError?: string | null;
 }
 
-export const Editor: React.FC<EditorProps> = ({ value, onChange, parseError }) => {
+const basicSetupOptions = {
+  lineNumbers: false,
+  foldGutter: false,
+  highlightActiveLineGutter: false,
+  highlightActiveLine: false,
+  syntaxHighlighting: false,
+} as const;
+
+export const Editor: React.FC<EditorProps> = ({ fileName, value, onChange, parseError }) => {
+  const extensions = useMemo(
+    () => [
+      ...getLanguageExtensions(fileName),
+      skemaSyntaxHighlighting,
+      skemaEditorChrome,
+    ],
+    [fileName],
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flex: 1, minHeight: 0 }}>
-      <div className="skema-code-inset">
-        <textarea
+      <div className="skema-code-inset" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <CodeMirror
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          spellCheck={false}
-          style={{
-            flex: 1,
-            width: '100%',
-            minHeight: 0,
-            padding: '14px var(--workspace-pad-x)',
-            background: 'transparent',
-            outline: 'none',
-            border: 'none',
-            resize: 'none',
-            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-            fontSize: '13px',
-            lineHeight: 1.7,
-            color: 'var(--text-main)',
-            boxSizing: 'border-box',
-          }}
+          height="100%"
+          theme="none"
+          extensions={extensions}
+          onChange={(v) => onChange(v)}
+          basicSetup={basicSetupOptions}
+          indentWithTab
           placeholder="Paste your TypeScript, SQL, GraphQL, or Prisma schema here…"
+          style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
+          className="skema-codemirror-root"
+          aria-label="Schema source"
         />
       </div>
 

@@ -2,20 +2,21 @@ import React from 'react';
 import type { SchemaNode } from '../types';
 import {
   Braces,
-  ChevronLeft,
-  ChevronRight,
   CircleDot,
   Cuboid,
   FolderTree,
   FunctionSquare,
   ListOrdered,
+  PanelRightClose,
   Table2,
 } from 'lucide-react';
 
 /** Default row icon size in Explorer / kind list */
 export const KIND_ICON_SIZE = 16;
 const EXPLORER_TITLE_ICON = 17;
-const CHEVRON_SIZE = 20;
+/** Collapsed rail: one icon only — reads as Explorer without crowding the narrow column */
+const EXPLORER_RAIL_ICON = 19;
+const COLLAPSE_PANEL_ICON = 20;
 
 const COLLAPSED_WIDTH = 44;
 
@@ -76,7 +77,7 @@ export const ExplorerTopChrome: React.FC<ExplorerChromeProps> = ({ collapsed, on
             e.currentTarget.style.color = 'var(--text-muted)';
           }}
         >
-          <ChevronRight size={CHEVRON_SIZE} strokeWidth={2.25} />
+          <FolderTree size={EXPLORER_RAIL_ICON} strokeWidth={2} aria-hidden />
         </button>
       </div>
     );
@@ -102,7 +103,7 @@ export const ExplorerTopChrome: React.FC<ExplorerChromeProps> = ({ collapsed, on
           e.currentTarget.style.color = 'var(--text-muted)';
         }}
       >
-        <ChevronLeft size={CHEVRON_SIZE} strokeWidth={2.25} />
+        <PanelRightClose size={COLLAPSE_PANEL_ICON} strokeWidth={2.25} />
       </button>
     </div>
   );
@@ -121,20 +122,60 @@ const iconProps = (size: number, colorVar: string) => ({
   'aria-hidden': true as const,
 });
 
-export const getIconForKind = (kind: string, size: number = KIND_ICON_SIZE) => {
+export type KindIconColorSet = 'graph' | 'explorer';
+
+function kindIconColorVar(kind: string, colorSet: KindIconColorSet): string {
+  if (colorSet === 'explorer') {
+    switch (kind) {
+      case 'interface':
+        return 'var(--explorer-accent-interface)';
+      case 'class':
+        return 'var(--explorer-accent-class)';
+      case 'enum':
+        return 'var(--explorer-accent-enum)';
+      case 'table':
+        return 'var(--explorer-accent-table)';
+      case 'method':
+        return 'var(--explorer-accent-method)';
+      default:
+        return 'var(--explorer-accent-scalar)';
+    }
+  }
   switch (kind) {
     case 'interface':
-      return <Braces {...iconProps(size, 'var(--kind-interface)')} />;
+      return 'var(--kind-interface)';
     case 'class':
-      return <Cuboid {...iconProps(size, 'var(--kind-class)')} />;
+      return 'var(--kind-class)';
     case 'enum':
-      return <ListOrdered {...iconProps(size, 'var(--kind-enum)')} />;
+      return 'var(--kind-enum)';
     case 'table':
-      return <Table2 {...iconProps(size, 'var(--kind-table)')} />;
+      return 'var(--kind-table)';
     case 'method':
-      return <FunctionSquare {...iconProps(size, 'var(--kind-method)')} />;
+      return 'var(--kind-method)';
     default:
-      return <CircleDot {...iconProps(size, 'var(--kind-scalar)')} />;
+      return 'var(--kind-scalar)';
+  }
+}
+
+export const getIconForKind = (
+  kind: string,
+  size: number = KIND_ICON_SIZE,
+  colorSet: KindIconColorSet = 'graph',
+) => {
+  const colorVar = kindIconColorVar(kind, colorSet);
+  switch (kind) {
+    case 'interface':
+      return <Braces {...iconProps(size, colorVar)} />;
+    case 'class':
+      return <Cuboid {...iconProps(size, colorVar)} />;
+    case 'enum':
+      return <ListOrdered {...iconProps(size, colorVar)} />;
+    case 'table':
+      return <Table2 {...iconProps(size, colorVar)} />;
+    case 'method':
+      return <FunctionSquare {...iconProps(size, colorVar)} />;
+    default:
+      return <CircleDot {...iconProps(size, colorVar)} />;
   }
 };
 
@@ -188,7 +229,7 @@ export const ExplorerBody: React.FC<ExplorerBodyProps> = ({ nodes, onNavigate, c
                   e.currentTarget.style.background = 'transparent';
                 }}
               >
-                {getIconForKind(parent.kind)}
+                {getIconForKind(parent.kind, KIND_ICON_SIZE, 'explorer')}
                 {parent.displayName}
               </div>
 
@@ -209,7 +250,7 @@ export const ExplorerBody: React.FC<ExplorerBodyProps> = ({ nodes, onNavigate, c
                   >
                     <span style={{ color: 'var(--text-main)', marginRight: '6px', opacity: 0.9 }}>{field.name}</span>
                     {parent.kind !== 'enum' && (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{field.ty}</span>
+                      <span style={{ color: 'var(--syntax-type)', fontSize: '10px' }}>{field.ty}</span>
                     )}
                   </div>
                 ))}

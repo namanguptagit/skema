@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type PointerEvent } from 'react';
 import type { CSSProperties } from 'react';
 import init, { parse_schema_wasm } from './core_pkg/core';
 import { Editor } from './components/Editor';
@@ -41,6 +41,31 @@ const enum Role {
 }`;
 
 const STORAGE_KEY = 'skema_state';
+const EDITOR_PANE_WIDTH_KEY = 'skema_editor_pane_width';
+const MIN_EDITOR_PANE = 280;
+const MAX_EDITOR_PANE_ABS = 1200;
+
+function maxEditorPaneWidth(): number {
+  if (typeof window === 'undefined') return MAX_EDITOR_PANE_ABS;
+  return Math.min(
+    MAX_EDITOR_PANE_ABS,
+    Math.max(MIN_EDITOR_PANE, window.innerWidth - 320),
+  );
+}
+
+function readStoredEditorPaneWidth(): number {
+  try {
+    const v = localStorage.getItem(EDITOR_PANE_WIDTH_KEY);
+    if (v) {
+      const n = parseInt(v, 10);
+      if (!Number.isNaN(n)) {
+        const max = maxEditorPaneWidth();
+        return Math.min(max, Math.max(MIN_EDITOR_PANE, n));
+      }
+    }
+  } catch { /* ignore */ }
+  return 420;
+}
 
 type SchemaFile = { id: string; name: string; content: string; };
 
@@ -87,6 +112,43 @@ function App() {
   );
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
+  const [editorPaneWidth, setEditorPaneWidth] = useState(readStoredEditorPaneWidth);
+  const editorPaneWidthRef = useRef(editorPaneWidth);
+  editorPaneWidthRef.current = editorPaneWidth;
+  const paneDragRef = useRef<{ startX: number; startW: number } | null>(null);
+
+  const onPaneResizePointerDown = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    paneDragRef.current = { startX: e.clientX, startW: editorPaneWidthRef.current };
+    document.body.classList.add('skema-pane-resizing');
+  }, []);
+
+  const onPaneResizePointerMove = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    if (!paneDragRef.current) return;
+    const dx = e.clientX - paneDragRef.current.startX;
+    const max = maxEditorPaneWidth();
+    const w = Math.round(
+      Math.min(max, Math.max(MIN_EDITOR_PANE, paneDragRef.current.startW + dx)),
+    );
+    setEditorPaneWidth(w);
+  }, []);
+
+  const endPaneResize = useCallback((e: PointerEvent<HTMLButtonElement>) => {
+    if (!paneDragRef.current) return;
+    paneDragRef.current = null;
+    document.body.classList.remove('skema-pane-resizing');
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch { /* ignore */ }
+    setEditorPaneWidth((current) => {
+      try {
+        localStorage.setItem(EDITOR_PANE_WIDTH_KEY, String(current));
+      } catch { /* ignore */ }
+      return current;
+    });
+  }, []);
 
   const exportSvg = () => {
     const el = document.querySelector('.skema-canvas-container') as HTMLElement;
@@ -141,6 +203,17 @@ function App() {
       }
     } catch { /* ignore */ }
     init().then(() => setWasmReady(true));
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      setEditorPaneWidth((w) => {
+        const max = maxEditorPaneWidth();
+        return Math.min(max, Math.max(MIN_EDITOR_PANE, w));
+      });
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   // Save to localStorage whenever files or positions change
@@ -252,12 +325,37 @@ function App() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: 'var(--radius-workspace)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            flexShrink: 0,
           }}>
-            <img src="/logo.svg" width={22} height={22} alt="Skema" />
+            <img src="/logo.svg" width={22} height={22} alt="" />
           </div>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', color: 'var(--text-main)' }}>Skema</h1>
-            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Schema visualizer</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, lineHeight: 1 }}>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-logo)',
+                fontSize: '20px',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: 'var(--text-main)',
+                lineHeight: 1,
+              }}
+            >
+              Skema
+            </h1>
+            <span
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '10px',
+                fontWeight: 600,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--text-muted)',
+                lineHeight: 1,
+              }}
+            >
+              Schema visualizer
+            </span>
           </div>
         </div>
 
@@ -350,29 +448,16 @@ function App() {
 
       {/* Main Content */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0, background: 'var(--bg-workspace)' }}>
-        {/* Editor + Explorer: shared height; top row = tabs | Explorer chrome */}
+        {/* Editor + Explorer: grid — tabs|Explorer header, editor|Explorer body */}
         <div
+          className="skema-workspace-split"
           style={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexShrink: 0,
-            height: '100%',
-            minHeight: 0,
-            alignItems: 'stretch',
+            gridTemplateColumns: explorerCollapsed
+              ? `${editorPaneWidth}px var(--pane-resize-width) ${COLLAPSED_WIDTH}px`
+              : `${editorPaneWidth}px var(--pane-resize-width) max-content`,
           }}
         >
-          <div
-            className="skema-workspace-column"
-            style={{
-              width: '420px',
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'var(--bg-editor-body)',
-            }}
-          >
-          {/* File Tabs */}
-          <div className="skema-file-tabs-row">
+          <div className="skema-file-tabs-row skema-workspace-split-tabs">
             {files.map(f => {
               const isActive = activeFileId === f.id;
               return (
@@ -511,22 +596,48 @@ function App() {
             </button>
           </div>
 
-          <Editor 
-            value={files.find(f => f.id === activeFileId)?.content || ''} 
-            onChange={(val) => {
-              setFiles(files.map(f => f.id === activeFileId ? { ...f, content: val } : f));
-            }} 
-            parseError={parseError} 
-          />
+          <div
+            className="skema-workspace-column skema-workspace-split-editor"
+            style={{
+              width: '100%',
+              minWidth: 0,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--bg-editor-body)',
+            }}
+          >
+            <Editor
+              key={activeFileId}
+              fileName={files.find(f => f.id === activeFileId)?.name ?? 'schema.ts'}
+              value={files.find(f => f.id === activeFileId)?.content || ''}
+              onChange={(val) => {
+                setFiles(files.map(f => f.id === activeFileId ? { ...f, content: val } : f));
+              }}
+              parseError={parseError}
+            />
           </div>
 
+          <button
+            type="button"
+            className="skema-pane-resize-handle"
+            aria-label="Resize schema editor width"
+            aria-orientation="vertical"
+            aria-valuenow={editorPaneWidth}
+            aria-valuemin={MIN_EDITOR_PANE}
+            aria-valuemax={maxEditorPaneWidth()}
+            onPointerDown={onPaneResizePointerDown}
+            onPointerMove={onPaneResizePointerMove}
+            onPointerUp={endPaneResize}
+            onPointerCancel={endPaneResize}
+          />
+
           <div
-            className="skema-explorer-column"
+            className="skema-explorer-column skema-workspace-split-explorer"
             style={{
               display: 'flex',
               flexDirection: 'column',
               flexShrink: 0,
-              minHeight: 0,
               width: explorerCollapsed ? COLLAPSED_WIDTH : 'max-content',
               maxWidth: explorerCollapsed ? COLLAPSED_WIDTH : 'min(480px, 45vw)',
               minWidth: explorerCollapsed ? COLLAPSED_WIDTH : 'var(--explorer-column-min-width)',

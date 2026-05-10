@@ -1,6 +1,8 @@
 :root {
   --font-display: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  /* App header wordmark only (Bricolage Grotesque from index.html) */
+  --font-logo: 'Bricolage Grotesque', var(--font-display), sans-serif;
 
   /* Base — flat neutrals */
   --bg-obsidian: #1a1a18;
@@ -28,6 +30,7 @@
   --shadow-column-inset: inset -1px 0 0 var(--section-divider);
   --explorer-column-max-width: min(480px, 45vw);
   --explorer-column-min-width: 180px;
+  --pane-resize-width: 5px;
 
   /* Legacy accent names — muted, for any remaining references */
   --accent-gold: #5c6d62;
@@ -46,6 +49,14 @@
   --kind-method: #454442;
   --kind-scalar: #626260;
 
+  /* Explorer panel only — kind accents (graph / canvas still uses neutral --kind-* above) */
+  --explorer-accent-interface: #9eb7f0;
+  --explorer-accent-class: #b8c9f5;
+  --explorer-accent-enum: #e8a87c;
+  --explorer-accent-table: #7ec8b8;
+  --explorer-accent-method: #c9a8e8;
+  --explorer-accent-scalar: #8a9a90;
+
   /* Graph edges */
   --edge-reference: #565d66;
   --edge-extends: #6b5d52;
@@ -60,6 +71,26 @@
   --color-primary-active: #B06A2A;
   --color-on-primary: #FFFFFF;
   --color-primary-subtle: rgba(196, 122, 58, 0.14);
+
+  /* Schema editor syntax — distinct hues on --bg-inset (avoid flat node grays) */
+  --syntax-default: #e6e4de;
+  --syntax-keyword: #f0b070;
+  --syntax-control: #e8a87c;
+  --syntax-string: #8fd9c2;
+  --syntax-string-alt: #7ec8b8;
+  --syntax-comment: #6d8b7a;
+  --syntax-number: #e8c08a;
+  --syntax-bool-null: #c9a8e8;
+  --syntax-type: #9eb7f0;
+  --syntax-class: #b8c9f5;
+  --syntax-property: #d4b8a8;
+  --syntax-attribute: #c4a99a;
+  --syntax-namespace: #a8c4d4;
+  --syntax-operator: #a39e94;
+  --syntax-punctuation: #8f8b82;
+  --syntax-regex: #d4a574;
+  --syntax-meta: #8a9a90;
+  --syntax-invalid: #f07868;
 
   font-family: var(--font-display);
   line-height: 1.5;
@@ -215,13 +246,82 @@ body {
   box-shadow: var(--shadow-column-inset);
 }
 
-/* Shared top toolbar row: file tabs (left) + Explorer chrome (right) */
-.skema-workspace-top-row {
-  display: flex;
-  flex-direction: row;
+/* Editor | resize handle | Explorer — first column width set inline from React */
+.skema-workspace-split {
+  display: grid;
+  grid-template-columns: 420px var(--pane-resize-width) max-content;
+  grid-template-rows: var(--file-tabs-row-height) minmax(0, 1fr);
   flex-shrink: 0;
-  align-items: stretch;
-  min-height: var(--file-tabs-row-height);
+  height: 100%;
+  min-height: 0;
+}
+
+.skema-workspace-split-tabs {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.skema-workspace-split-editor {
+  grid-column: 1;
+  grid-row: 2;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.skema-pane-resize-handle {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: col-resize;
+  touch-action: none;
+  position: relative;
+  z-index: 2;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+}
+
+.skema-pane-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--section-divider);
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.skema-pane-resize-handle:hover::after,
+.skema-pane-resize-handle:focus-visible::after {
+  background: var(--accent-line);
+  box-shadow: 0 0 0 1px rgba(138, 127, 106, 0.35);
+}
+
+.skema-pane-resize-handle:focus-visible {
+  outline: none;
+}
+
+body.skema-pane-resizing {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+.skema-workspace-split-explorer {
+  grid-column: 3;
+  grid-row: 1 / -1;
+  min-height: 0;
+  min-width: 0;
 }
 
 .skema-file-tabs-row {
@@ -408,11 +508,13 @@ body {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
+  border-right: 1px solid var(--section-divider);
 }
 
 .skema-explorer-top-cell--expanded {
   justify-content: space-between;
   gap: 8px;
+  border-right: 1px solid var(--section-divider);
 }
 
 .skema-explorer-column {
@@ -437,6 +539,23 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.skema-codemirror-root {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.skema-codemirror-root .cm-editor {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.skema-codemirror-root .cm-scroller {
+  min-height: 0;
 }
 
 .skema-section-footer {

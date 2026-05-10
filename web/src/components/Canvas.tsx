@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import type { SchemaNode, SchemaEdge, NodeKind, RelationshipKind } from '../types';
 import { NodeCard, NODE_GEOMETRY } from './NodeCard';
@@ -253,20 +253,26 @@ export const Canvas: React.FC<CanvasProps> = ({
     setDragNode(null);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const factor = e.deltaY > 0 ? 1.12 : 0.88;
-    setViewBox(prev => {
-      const newW = Math.min(Math.max(prev.w * factor, 300), 6000);
-      const newH = Math.min(Math.max(prev.h * factor, 200), 4000);
-      return {
-        x: prev.x - (newW - prev.w) / 2,
-        y: prev.y - (newH - prev.h) / 2,
-        w: newW,
-        h: newH,
-      };
-    });
-  };
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 1.12 : 0.88;
+      setViewBox((prev) => {
+        const newW = Math.min(Math.max(prev.w * factor, 300), 6000);
+        const newH = Math.min(Math.max(prev.h * factor, 200), 4000);
+        return {
+          x: prev.x - (newW - prev.w) / 2,
+          y: prev.y - (newH - prev.h) / 2,
+          w: newW,
+          h: newH,
+        };
+      });
+    };
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, []);
 
   const handleEdgeMouseEnter = (e: React.MouseEvent, edge: SchemaEdge) => {
     const src = nodes.find(n => n.id === edge.sourceNodeId);
@@ -406,13 +412,17 @@ export const Canvas: React.FC<CanvasProps> = ({
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <svg
         ref={svgRef}
-        style={{ width: '100%', height: '100%', cursor: dragNode ? 'grabbing' : 'default' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          cursor: dragNode ? 'grabbing' : 'default',
+          touchAction: 'none',
+        }}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
         onMouseDown={handleBgMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
       >
         <defs>
           <pattern id="dots" width="30" height="30" patternUnits="userSpaceOnUse">
