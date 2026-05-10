@@ -99,7 +99,7 @@ interface ExplorerBodyProps {
   collapsed: boolean;
 }
 
-const getIconForKind = (kind: string) => {
+export const getIconForKind = (kind: string) => {
   switch (kind) {
     case 'interface': return <Hash size={14} color="var(--kind-interface)" />;
     case 'class': return <Box size={14} color="var(--kind-class)" />;

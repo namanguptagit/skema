@@ -170,6 +170,136 @@ body {
   background: var(--border-strong);
 }
 
+/* Node detail drawer and other vertical scroll strips */
+.skema-drawer-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--section-divider) transparent;
+}
+
+.skema-drawer-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.skema-drawer-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.skema-drawer-scroll::-webkit-scrollbar-thumb {
+  background: var(--section-divider);
+  border-radius: 3px;
+}
+
+.skema-drawer-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Node detail drawer — canvas-aligned shell + flat rows */
+.skema-detail-drawer {
+  position: relative;
+  height: 100%;
+  margin: 10px 12px 10px 0;
+  box-sizing: border-box;
+  background: var(--bg-obsidian);
+  border: 1px solid var(--section-divider);
+  border-radius: var(--radius-workspace-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  animation: skema-detail-drawer-in 0.18s ease-out;
+  font-family: var(--font-mono);
+  min-height: 0;
+  overflow: hidden;
+}
+
+@keyframes skema-detail-drawer-in {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.skema-detail-drawer-title-block {
+  flex-shrink: 0;
+  padding: 14px var(--workspace-pad-x) 12px;
+  border-bottom: 1px solid var(--section-divider);
+  background: var(--bg-obsidian);
+}
+
+.skema-detail-drawer-section-title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.skema-detail-drawer-field-row {
+  display: grid;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: var(--radius-workspace);
+  border: 1px solid var(--section-divider);
+  background: transparent;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.skema-detail-drawer-field-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.skema-detail-drawer-edge-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  margin: 0;
+  border-radius: var(--radius-workspace);
+  border: 1px solid var(--section-divider);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: inherit;
+  text-align: left;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.skema-detail-drawer-edge-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-strong);
+}
+
+.skema-detail-drawer-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-workspace);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.skema-detail-drawer-close-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+}
+
 /* Explorer segment on the same line as file tabs */
 .skema-explorer-top-cell {
   display: flex;

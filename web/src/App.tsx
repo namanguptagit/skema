@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import init, { parse_schema_wasm } from './core_pkg/core';
 import { Editor } from './components/Editor';
 import { ExplorerTopChrome, ExplorerBody, COLLAPSED_WIDTH } from './components/MethodTree';
@@ -229,66 +230,83 @@ function App() {
       <header style={{
         height: '56px',
         borderBottom: '1px solid var(--section-divider)',
-        boxShadow: 'var(--shadow-app-header)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 22px',
-        background: 'var(--bg-panel)',
+        padding: '0 var(--workspace-pad-x)',
+        background: 'var(--bg-rail)',
         flexShrink: 0,
         zIndex: 100,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '36px', height: '36px',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-stark)',
+            background: 'var(--bg-panel)',
+            border: '1px solid var(--section-divider)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '6px',
+            borderRadius: 'var(--radius-workspace)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
           }}>
             <LayoutDashboard size={18} color="var(--text-main)" />
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', color: 'var(--text-main)' }}>Skema</h1>
-            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '1px' }}>SCHEMA VISUALIZER</p>
+            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Schema visualizer</p>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
             {schema.nodes.length} nodes · {schema.edges.length} edges
           </div>
           <button
+            type="button"
             onClick={handleRelayout}
             title="Re-run auto-layout (clears manual positions)"
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px', borderRadius: '6px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-stark)',
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-workspace)',
+              background: 'var(--bg-panel)',
+              border: '1px solid var(--section-divider)',
               color: 'var(--text-main)', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+              fontFamily: 'var(--font-display)',
+              transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              e.currentTarget.style.borderColor = 'var(--border-strong)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--bg-panel)';
+              e.currentTarget.style.borderColor = 'var(--section-divider)';
             }}
           >
             ⟳ Re-layout
           </button>
           <div style={{ position: 'relative' }}>
-            <button 
+            <button
+              type="button"
               onClick={() => setShowExportMenu(!showExportMenu)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '8px 16px', borderRadius: '0px',
-                background: 'var(--bg-obsidian)',
-                border: '1px solid var(--border-stark)',
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-workspace)',
+                background: 'var(--bg-panel)',
+                border: '1px solid var(--section-divider)',
                 color: 'var(--text-main)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-mono)',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
               }}
               onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
                 e.currentTarget.style.borderColor = 'var(--border-strong)';
                 e.currentTarget.style.color = 'var(--text-muted)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--border-stark)';
+                e.currentTarget.style.background = 'var(--bg-panel)';
+                e.currentTarget.style.borderColor = 'var(--section-divider)';
                 e.currentTarget.style.color = 'var(--text-main)';
               }}
             >
@@ -297,23 +315,37 @@ function App() {
             {showExportMenu && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: '8px',
-                background: 'var(--bg-elevated)', border: '1px solid var(--border-stark)',
-                borderRadius: '6px', padding: '4px', display: 'flex', flexDirection: 'column',
-                minWidth: '160px', zIndex: 100,
+                background: 'var(--bg-panel)',
+                border: '1px solid var(--section-divider)',
+                borderRadius: 'var(--radius-workspace)',
+                padding: '4px',
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: '160px',
+                zIndex: 100,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
               }}>
                 {(() => {
-                  const menuBtnStyle = {
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    padding: '8px 12px', background: 'transparent', border: 'none',
-                    color: 'var(--text-main)', fontSize: '13px', cursor: 'pointer',
-                    textAlign: 'left' as const, borderRadius: '4px'
+                  const menuBtnStyle: CSSProperties = {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-main)',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    borderRadius: 'var(--radius-workspace)',
+                    transition: 'background 150ms ease',
                   };
                   return (
                     <>
-                      <button onClick={exportSvg} style={menuBtnStyle}><Download size={14} /> Export SVG</button>
-                      <button onClick={exportPng} style={menuBtnStyle}><ImageIcon size={14} /> Export PNG</button>
-                      <button onClick={exportJson} style={menuBtnStyle}><FileJson size={14} /> Export JSON</button>
-                      <button onClick={shareLink} style={menuBtnStyle}><Link size={14} /> Copy Share Link</button>
+                      <button type="button" onClick={exportSvg} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Download size={14} /> Export SVG</button>
+                      <button type="button" onClick={exportPng} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><ImageIcon size={14} /> Export PNG</button>
+                      <button type="button" onClick={exportJson} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><FileJson size={14} /> Export JSON</button>
+                      <button type="button" onClick={shareLink} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Link size={14} /> Copy Share Link</button>
                     </>
                   );
                 })()}
@@ -324,7 +356,22 @@ function App() {
             href="https://github.com"
             target="_blank"
             rel="noreferrer"
-            style={{ padding: '8px', borderRadius: '8px', color: 'var(--text-muted)', textDecoration: 'none', display: 'flex' }}
+            style={{
+              padding: '8px',
+              borderRadius: 'var(--radius-workspace)',
+              color: 'var(--text-muted)',
+              textDecoration: 'none',
+              display: 'flex',
+              transition: 'background 150ms ease, color 150ms ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              e.currentTarget.style.color = 'var(--text-main)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
           >
             <ExternalLink size={20} />
           </a>
@@ -567,9 +614,13 @@ function App() {
               zIndex: 10,
               pointerEvents: 'none'
             }}>
-              <div className="glass" style={{ 
+              <div style={{ 
                 padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px',
-                borderRadius: '20px',
+                borderRadius: 'var(--radius-workspace)',
+                border: '1px solid var(--section-divider)',
+                background: 'var(--bg-panel)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                fontFamily: 'var(--font-mono)',
               }}>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',
@@ -580,9 +631,13 @@ function App() {
                 </span>
               </div>
               
-              <div className="glass" style={{ 
+              <div style={{ 
                 padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px',
-                borderRadius: '20px',
+                borderRadius: 'var(--radius-workspace)',
+                border: '1px solid var(--section-divider)',
+                background: 'var(--bg-panel)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                fontFamily: 'var(--font-mono)',
               }}>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',

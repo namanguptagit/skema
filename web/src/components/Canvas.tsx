@@ -292,7 +292,7 @@ export const Canvas: React.FC<CanvasProps> = ({
 
       {/* Edge Tooltip */}
       {tooltip && (
-        <div className="glass" style={{
+        <div style={{
           position: 'absolute',
           left: tooltip.x + 16,
           top: tooltip.y - 16,
@@ -300,8 +300,10 @@ export const Canvas: React.FC<CanvasProps> = ({
           pointerEvents: 'none',
           zIndex: 200,
           minWidth: '140px',
-          borderRadius: 'var(--radius-workspace-lg)',
+          borderRadius: 'var(--radius-workspace)',
           border: '1px solid var(--section-divider)',
+          background: 'var(--bg-panel)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
         }}>
           <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
             {tooltip.kind}
@@ -318,12 +320,15 @@ export const Canvas: React.FC<CanvasProps> = ({
       )}
 
       {/* Zoom Controls */}
-      <div className="glass" style={{
+      <div style={{
         position: 'absolute', bottom: '24px', right: '24px',
-        display: 'flex', flexDirection: 'column', gap: '8px',
-        padding: '8px',
-        borderRadius: 'var(--radius-workspace-lg)',
+        display: 'flex', flexDirection: 'column', gap: '4px',
+        padding: '6px',
+        borderRadius: 'var(--radius-workspace)',
         border: '1px solid var(--section-divider)',
+        background: 'var(--bg-panel)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        zIndex: 50,
       }}>
         {[
           { label: '+', fn: () => setViewBox(p => ({ ...p, w: p.w * 0.8, h: p.h * 0.8 })) },
@@ -332,13 +337,14 @@ export const Canvas: React.FC<CanvasProps> = ({
         ].map(({ label, fn }) => (
           <button
             key={label}
+            type="button"
             onClick={fn}
             style={{
               width: '36px', height: '36px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'transparent', border: 'none', borderRadius: '50%',
+              background: 'transparent', border: 'none', borderRadius: 'var(--radius-workspace)',
               color: 'var(--text-muted)', fontSize: '18px', cursor: 'pointer', fontWeight: 500,
-              transition: 'all 0.2s'
+              transition: 'background 150ms ease, color 150ms ease'
             }}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
@@ -363,7 +369,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         <div className="glass" style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           padding: '8px 16px',
-          borderRadius: '999px',
+          borderRadius: 'var(--radius-workspace)',
           pointerEvents: 'auto',
           border: '1px solid var(--section-divider)',
         }}>
@@ -385,7 +391,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         <div className="glass" style={{
           display: 'flex', alignItems: 'center', gap: '4px',
           padding: '6px 8px',
-          borderRadius: '999px',
+          borderRadius: 'var(--radius-workspace)',
           pointerEvents: 'auto',
           border: '1px solid var(--section-divider)',
         }}>
@@ -401,7 +407,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                   setActiveKinds(next);
                 }}
                 style={{
-                  padding: '6px 12px', borderRadius: '16px', border: 'none',
+                  padding: '6px 12px', borderRadius: 'var(--radius-workspace)', border: 'none',
                   background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
                   color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
                   fontSize: '11px', fontWeight: 600, cursor: 'pointer',
