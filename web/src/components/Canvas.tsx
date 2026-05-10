@@ -101,7 +101,9 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   const handleMouseUp = (e: React.MouseEvent) => {
     const wasDraggingNode = mouseDownNodeId.current;
-    if (!didMove.current) {
+    
+    // Only process "clicks" if it's an actual mouseup, not a mouseleave
+    if (e.type === 'mouseup' && !didMove.current) {
       if (wasDraggingNode) {
         // Click on a node → toggle selection
         onNodeClick(wasDraggingNode === selectedNodeId ? null : wasDraggingNode);
@@ -110,6 +112,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         onNodeClick(null);
       }
     }
+    
     mouseDownNodeId.current = null;
     setIsPanning(false);
     setDragNode(null);
@@ -148,7 +151,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   const handleEdgeMouseLeave = () => setTooltip(null);
 
   return (
-    <div style={{ width: '100%', height: '100%', background: '#020617', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <svg
         ref={svgRef}
         style={{ width: '100%', height: '100%', cursor: dragNode ? 'grabbing' : 'default' }}
@@ -197,6 +200,9 @@ export const Canvas: React.FC<CanvasProps> = ({
           const src = nodes.find(n => n.id === edge.sourceNodeId);
           const tgt = nodes.find(n => n.id === edge.targetNodeId);
           if (!src || !tgt) return null;
+          
+          // Only draw the edge if BOTH connected nodes are currently visible
+          if (!activeKinds.has(src.kind) || !activeKinds.has(tgt.kind)) return null;
 
           const nodeWidth = 240;
           const nodeHeaderH = 38;
@@ -284,44 +290,37 @@ export const Canvas: React.FC<CanvasProps> = ({
         })}
       </svg>
 
-      {/* Edge Tooltip (Step 18) */}
+      {/* Edge Tooltip */}
       {tooltip && (
-        <div style={{
+        <div className="glass" style={{
           position: 'absolute',
-          left: tooltip.x + 12,
-          top: tooltip.y - 12,
-          background: 'rgba(10,16,30,0.95)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '8px',
-          padding: '8px 12px',
+          left: tooltip.x + 16,
+          top: tooltip.y - 16,
+          padding: '8px 16px',
           pointerEvents: 'none',
           zIndex: 200,
-          backdropFilter: 'blur(8px)',
           minWidth: '140px',
         }}>
-          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
             {tooltip.kind}
           </div>
-          <div style={{ fontSize: '12px', color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 600 }}>
             {tooltip.source} → {tooltip.target}
           </div>
           {tooltip.label && (
-            <div style={{ fontSize: '11px', color: '#60a5fa', marginTop: '3px' }}>
-              via <em>{tooltip.label}</em>
+            <div style={{ fontSize: '11px', color: 'var(--accent-gold)', marginTop: '4px', opacity: 0.8 }}>
+              via {tooltip.label}
             </div>
           )}
         </div>
       )}
 
       {/* Zoom Controls */}
-      <div style={{
+      <div className="glass" style={{
         position: 'absolute', bottom: '24px', right: '24px',
-        display: 'flex', flexDirection: 'column', gap: '4px',
-        background: 'rgba(15,23,42,0.8)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '10px',
-        padding: '6px',
-        backdropFilter: 'blur(8px)',
+        display: 'flex', flexDirection: 'column', gap: '8px',
+        padding: '8px',
+        borderRadius: '24px'
       }}>
         {[
           { label: '+', fn: () => setViewBox(p => ({ ...p, w: p.w * 0.8, h: p.h * 0.8 })) },
@@ -334,11 +333,18 @@ export const Canvas: React.FC<CanvasProps> = ({
             style={{
               width: '36px', height: '36px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'transparent', border: 'none', borderRadius: '6px',
-              color: '#94a3b8', fontSize: '18px', cursor: 'pointer',
+              background: 'transparent', border: 'none', borderRadius: '50%',
+              color: 'var(--text-muted)', fontSize: '18px', cursor: 'pointer', fontWeight: 500,
+              transition: 'all 0.2s'
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.color = 'var(--text-main)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
           >
             {label}
           </button>
@@ -348,16 +354,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       {/* Top Toolbar */}
       <div style={{
         position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', gap: '8px', zIndex: 50,
+        display: 'flex', gap: '8px', zIndex: 50, pointerEvents: 'none'
       }}>
         {/* Search */}
-        <div style={{
+        <div className="glass" style={{
           display: 'flex', alignItems: 'center', gap: '8px',
-          background: 'rgba(15,23,42,0.85)', padding: '6px 12px',
-          borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(12px)',
+          padding: '8px 16px',
+          borderRadius: '24px',
+          pointerEvents: 'auto'
         }}>
-          <Search size={14} color="#94a3b8" />
+          <Search size={14} color="var(--text-muted)" />
           <input 
             type="text" 
             placeholder="Search nodes, fields, types..." 
@@ -365,18 +371,18 @@ export const Canvas: React.FC<CanvasProps> = ({
             onChange={e => setSearchQuery(e.target.value)}
             style={{
               background: 'transparent', border: 'none', outline: 'none',
-              color: '#f8fafc', fontSize: '12px', width: '200px',
-              fontFamily: 'system-ui, sans-serif'
+              color: 'var(--text-main)', fontSize: '13px', width: '220px',
+              fontWeight: 500
             }}
           />
         </div>
 
         {/* Kinds Filter Toggle */}
-        <div style={{
+        <div className="glass" style={{
           display: 'flex', alignItems: 'center', gap: '4px',
-          background: 'rgba(15,23,42,0.85)', padding: '4px 6px',
-          borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(12px)',
+          padding: '6px 8px',
+          borderRadius: '24px',
+          pointerEvents: 'auto'
         }}>
           {['interface', 'enum', 'class', 'table'].map(kind => {
             const isActive = activeKinds.has(kind as NodeKind);
@@ -390,11 +396,12 @@ export const Canvas: React.FC<CanvasProps> = ({
                   setActiveKinds(next);
                 }}
                 style={{
-                  padding: '4px 8px', borderRadius: '8px', border: 'none',
+                  padding: '6px 12px', borderRadius: '16px', border: 'none',
                   background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  color: isActive ? '#f8fafc' : '#64748b',
+                  color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
                   fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                  textTransform: 'uppercase', letterSpacing: '0.5px'
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                  transition: 'all 0.2s'
                 }}
               >
                 {kind}
