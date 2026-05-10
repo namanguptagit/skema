@@ -6,6 +6,7 @@ import { Canvas } from './components/Canvas';
 import { NodeDetailDrawer } from './components/NodeDetailDrawer';
 import { LayoutDashboard, Share2, ExternalLink, Download, Image as ImageIcon, FileJson, Link, X } from 'lucide-react';
 import { autoLayout } from './utils/layout';
+import { toPng, toSvg } from 'html-to-image';
 
 const DEFAULT_SCHEMA = `interface Profile {
   bio: string;
@@ -79,31 +80,29 @@ function App() {
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   const exportSvg = () => {
-    const svgEl = document.querySelector('svg');
-    if (!svgEl) return;
-    const svgData = new XMLSerializer().serializeToString(svgEl);
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = 'skema.svg'; link.click();
-    setShowExportMenu(false);
+    const el = document.querySelector('.skema-canvas-container') as HTMLElement;
+    if (!el) return;
+    toSvg(el, { backgroundColor: '#050505' })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = 'skema.svg';
+        link.href = dataUrl;
+        link.click();
+        setShowExportMenu(false);
+      });
   };
 
   const exportPng = () => {
-    const svgEl = document.querySelector('svg');
-    if (!svgEl) return;
-    const svgData = new XMLSerializer().serializeToString(svgEl);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width; canvas.height = img.height;
-      if (ctx) ctx.drawImage(img, 0, 0);
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png'); link.download = 'skema.png'; link.click();
-    };
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-    setShowExportMenu(false);
+    const el = document.querySelector('.skema-canvas-container') as HTMLElement;
+    if (!el) return;
+    toPng(el, { backgroundColor: '#050505' })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = 'skema.png';
+        link.href = dataUrl;
+        link.click();
+        setShowExportMenu(false);
+      });
   };
 
   const exportJson = () => {
@@ -423,7 +422,7 @@ function App() {
         <section style={{ flex: 1, display: 'flex', position: 'relative' }}>
           
           {/* Main Canvas Container */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          <div className="skema-canvas-container" style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
             <Canvas
               nodes={schema.nodes}
               edges={schema.edges}
