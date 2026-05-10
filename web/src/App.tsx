@@ -62,6 +62,7 @@ function App() {
 
   const [schema, setSchema] = useState<ParsedSchema>({ nodes: [], edges: [] });
   const [wasmReady, setWasmReady] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   // Track which nodes the user has manually dragged — they stay pinned during re-layout
@@ -146,19 +147,18 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ files, positions }));
   }, [files, schema.nodes]);
 
-  const runParse = useCallback((currentFiles: SchemaFile[]) => {
+  const runParse = useCallback((currentFiles: SchemaFile[], activeId: string) => {
     if (!wasmReady) return;
     try {
-      let allNodes: SchemaNode[] = [];
+      const activeFile = currentFiles.find(f => f.id === activeId);
+      if (!activeFile || !activeFile.content.trim()) {
+        setSchema({ nodes: [], edges: [] });
+        return;
+      }
+      const result = parse_schema_wasm(activeFile.content);
+      let allNodes: SchemaNode[] = result.nodes;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let allEdges: any[] = [];
-      
-      currentFiles.forEach(f => {
-        if (!f.content.trim()) return;
-        const result = parse_schema_wasm(f.content);
-        allNodes = allNodes.concat(result.nodes);
-        allEdges = allEdges.concat(result.edges);
-      });
+      let allEdges: any[] = result.edges;
       
       setParseError(null);
       setSchema(prev => {
@@ -188,17 +188,19 @@ function App() {
   // Debounced parse
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    setIsParsing(true);
     debounceTimer.current = setTimeout(() => {
-      runParse(files);
+      runParse(files, activeFileId);
+      setIsParsing(false);
     }, 600);
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [files, runParse]);
+  }, [files, activeFileId, runParse]);
 
   // Parse immediately once WASM becomes ready
   useEffect(() => {
-    if (wasmReady) runParse(files); // eslint-disable-line react-hooks/set-state-in-effect
+    if (wasmReady) runParse(files, activeFileId); // eslint-disable-line react-hooks/set-state-in-effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wasmReady]);
 
@@ -449,11 +451,11 @@ function App() {
               }}>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',
-                  background: wasmReady ? 'var(--accent-gold)' : 'var(--accent-rust)',
-                  boxShadow: wasmReady ? '0 0 8px var(--accent-gold)' : '0 0 8px var(--accent-rust)',
+                  background: isParsing ? 'var(--accent-sand)' : (wasmReady ? 'var(--accent-gold)' : 'var(--accent-rust)'),
+                  boxShadow: isParsing ? '0 0 8px var(--accent-sand)' : (wasmReady ? '0 0 8px var(--accent-gold)' : '0 0 8px var(--accent-rust)'),
                 }} />
                 <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 500, letterSpacing: '0.5px' }}>
-                  WASM {wasmReady ? 'Active' : 'Init'}
+                  WASM {isParsing ? 'Parsing...' : (wasmReady ? 'Active' : 'Init')}
                 </span>
               </div>
               
