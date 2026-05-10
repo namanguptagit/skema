@@ -37,7 +37,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, parseError }) =
       <div className="skema-section-footer">
         {parseError ? (
           <>
-            <AlertCircle size={12} color="var(--ui-danger)" strokeWidth={2} />
+            <AlertCircle size={15} color="var(--ui-danger)" strokeWidth={2.25} aria-hidden />
             <span style={{ color: 'var(--ui-danger)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
               {parseError.slice(0, 72)}{parseError.length > 72 ? '…' : ''}
             </span>

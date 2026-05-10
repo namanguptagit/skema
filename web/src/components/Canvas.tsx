@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Search } from 'lucide-react';
 import type { SchemaNode, SchemaEdge, NodeKind, RelationshipKind } from '../types';
-import { NodeCard } from './NodeCard';
+import { NodeCard, NODE_GEOMETRY } from './NodeCard';
 
 interface CanvasProps {
   nodes: SchemaNode[];
@@ -25,6 +25,141 @@ interface Tooltip {
   source: string;
   target: string;
 }
+
+function nodeCardHeight(node: SchemaNode): number {
+  const { headerHeight, rowHeight, paddingV } = NODE_GEOMETRY;
+  return headerHeight + paddingV + node.fields.length * rowHeight + paddingV;
+}
+
+function getNodeBounds(node: SchemaNode) {
+  const x = node.x ?? 0;
+  const y = node.y ?? 0;
+  const w = NODE_GEOMETRY.width;
+  const h = nodeCardHeight(node);
+  return { x, y, w, h, cx: x + w / 2, cy: y + h / 2 };
+}
+
+type EdgeGeometry = { sx: number; sy: number; tx: number; ty: number; d: string };
+
+function getEdgeGeometry(src: SchemaNode, tgt: SchemaNode): EdgeGeometry {
+  const a = getNodeBounds(src);
+  const b = getNodeBounds(tgt);
+  const dx = b.cx - a.cx;
+  const dy = b.cy - a.cy;
+  const { width: cardW, headerHeight } = NODE_GEOMETRY;
+
+  const headerMidY = (n: SchemaNode) => (n.y ?? 0) + headerHeight / 2;
+
+  let sx: number;
+  let sy: number;
+  let tx: number;
+  let ty: number;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    if (dx >= 0) {
+      sx = a.x + cardW;
+      sy = headerMidY(src);
+      tx = b.x;
+      ty = headerMidY(tgt);
+    } else {
+      sx = a.x;
+      sy = headerMidY(src);
+      tx = b.x + cardW;
+      ty = headerMidY(tgt);
+    }
+  } else if (dy >= 0) {
+    sx = a.cx;
+    sy = a.y + a.h;
+    tx = b.cx;
+    ty = b.y;
+  } else {
+    sx = a.cx;
+    sy = a.y;
+    tx = b.cx;
+    ty = b.y + b.h;
+  }
+
+  const dist = Math.hypot(tx - sx, ty - sy);
+  const off = Math.min(80, dist / 2);
+
+  let c1x: number;
+  let c1y: number;
+  let c2x: number;
+  let c2y: number;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    if (dx >= 0) {
+      c1x = sx + off;
+      c1y = sy;
+      c2x = tx - off;
+      c2y = ty;
+    } else {
+      c1x = sx - off;
+      c1y = sy;
+      c2x = tx + off;
+      c2y = ty;
+    }
+  } else if (dy >= 0) {
+    c1x = sx;
+    c1y = sy + off;
+    c2x = tx;
+    c2y = ty - off;
+  } else {
+    c1x = sx;
+    c1y = sy - off;
+    c2x = tx;
+    c2y = ty + off;
+  }
+
+  const d = `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}`;
+  return { sx, sy, tx, ty, d };
+}
+
+type EdgeStyleDef = {
+  strokeWidth: number;
+  strokeDasharray?: string;
+  markerEnd: string | null;
+  markerStart: string | null;
+};
+
+const EDGE_STYLE: Record<RelationshipKind, EdgeStyleDef> = {
+  extends: { strokeWidth: 1.5, markerEnd: 'url(#marker-triangle-open)', markerStart: null },
+  implements: { strokeWidth: 1.5, markerEnd: 'url(#marker-triangle-open)', markerStart: null },
+  'foreign-key': {
+    strokeWidth: 1.75,
+    markerEnd: 'url(#marker-arrow)',
+    markerStart: 'url(#marker-diamond-open)',
+  },
+  references: {
+    strokeWidth: 1.35,
+    strokeDasharray: '5 4',
+    markerEnd: 'url(#marker-arrow)',
+    markerStart: null,
+  },
+  'has-field': { strokeWidth: 1.25, markerEnd: 'url(#marker-arrow)', markerStart: null },
+  returns: {
+    strokeWidth: 1.25,
+    strokeDasharray: '1 4',
+    markerEnd: 'url(#marker-arrow)',
+    markerStart: null,
+  },
+};
+
+function edgeStrokeColor(kind: RelationshipKind): string {
+  if (kind === 'extends' || kind === 'implements') return 'var(--edge-extends)';
+  if (kind === 'foreign-key') return 'var(--edge-fk)';
+  return 'var(--edge-reference)';
+}
+
+type PreparedEdge = {
+  key: string;
+  edge: SchemaEdge;
+  geom: EdgeGeometry;
+  strokeColor: string;
+  style: EdgeStyleDef;
+  dim: boolean;
+  highlighted: boolean;
+};
 
 export const Canvas: React.FC<CanvasProps> = ({
   nodes, edges, selectedNodeId, onNodeMove, onNodeClick,
@@ -150,6 +285,123 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   const handleEdgeMouseLeave = () => setTooltip(null);
 
+  const preparedEdges: PreparedEdge[] = [];
+  edges.forEach((edge, i) => {
+    if (!activeEdges.has(edge.kind)) return;
+    const src = nodes.find(n => n.id === edge.sourceNodeId);
+    const tgt = nodes.find(n => n.id === edge.targetNodeId);
+    if (!src || !tgt) return;
+    if (!activeKinds.has(src.kind) || !activeKinds.has(tgt.kind)) return;
+
+    const touchesSelection =
+      selectedNodeId !== null &&
+      (edge.sourceNodeId === selectedNodeId || edge.targetNodeId === selectedNodeId);
+    const isConnectedToSelected =
+      !selectedNodeId ||
+      edge.sourceNodeId === selectedNodeId ||
+      edge.targetNodeId === selectedNodeId;
+    const dim = selectedNodeId !== null && !isConnectedToSelected;
+
+    preparedEdges.push({
+      key: `edge-${edge.sourceNodeId}-${edge.targetNodeId}-${edge.kind}-${i}`,
+      edge,
+      geom: getEdgeGeometry(src, tgt),
+      strokeColor: edgeStrokeColor(edge.kind),
+      style: EDGE_STYLE[edge.kind],
+      dim,
+      highlighted: touchesSelection,
+    });
+  });
+
+  const backEdges = preparedEdges.filter(e => !e.highlighted);
+  const frontEdges = preparedEdges.filter(e => e.highlighted);
+
+  const renderPreparedEdge = (pe: PreparedEdge) => {
+    const { edge, geom, strokeColor, style, dim, highlighted } = pe;
+    const { sx, sy, tx, ty, d } = geom;
+    const baseW = style.strokeWidth;
+    const strokeW = highlighted ? baseW + 0.5 : baseW;
+    const strokeOpacity = dim ? 0.14 : highlighted ? 0.95 : 0.55;
+    const dotR = dim ? 2.5 : highlighted ? 4 : 3;
+    const showLabel = Boolean(edge.label) && !dim && viewBox.w < 2800;
+    const label = edge.label ?? '';
+    const pillW = label.length * 5.5 + 10;
+    const pillH = 16;
+    const mx = (sx + tx) / 2;
+    const my = (sy + ty) / 2 - 8;
+
+    return (
+      <g key={pe.key}>
+        <path
+          d={d}
+          stroke="transparent"
+          strokeWidth={14}
+          fill="none"
+          style={{ cursor: 'crosshair' }}
+          onMouseEnter={e => handleEdgeMouseEnter(e, edge)}
+          onMouseLeave={handleEdgeMouseLeave}
+        />
+        <path
+          d={d}
+          stroke={strokeColor}
+          strokeWidth={strokeW}
+          strokeOpacity={strokeOpacity}
+          strokeDasharray={style.strokeDasharray}
+          strokeLinecap="round"
+          fill="none"
+          markerEnd={style.markerEnd ?? undefined}
+          markerStart={style.markerStart ?? undefined}
+          filter={highlighted ? 'url(#edge-glow)' : undefined}
+          style={{
+            pointerEvents: 'none',
+            transition: 'stroke-opacity 150ms ease, stroke-width 150ms ease',
+          }}
+        />
+        <circle
+          cx={sx}
+          cy={sy}
+          r={dotR}
+          fill={strokeColor}
+          fillOpacity={strokeOpacity}
+          style={{ pointerEvents: 'none', transition: 'r 150ms ease, fill-opacity 150ms ease' }}
+        />
+        <circle
+          cx={tx}
+          cy={ty}
+          r={dotR}
+          fill={strokeColor}
+          fillOpacity={strokeOpacity}
+          style={{ pointerEvents: 'none', transition: 'r 150ms ease, fill-opacity 150ms ease' }}
+        />
+        {showLabel && (
+          <g style={{ pointerEvents: 'none' }}>
+            <rect
+              x={mx - pillW / 2}
+              y={my - pillH / 2}
+              width={pillW}
+              height={pillH}
+              rx={4}
+              fill="var(--bg-panel)"
+              stroke="var(--section-divider)"
+              strokeWidth={1}
+            />
+            <text
+              x={mx}
+              y={my + 4}
+              fill={strokeColor}
+              fontSize={9}
+              textAnchor="middle"
+              fontWeight={600}
+              style={{ userSelect: 'none', fontFamily: 'var(--font-mono)' }}
+            >
+              {label}
+            </text>
+          </g>
+        )}
+      </g>
+    );
+  };
+
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <svg
@@ -166,23 +418,60 @@ export const Canvas: React.FC<CanvasProps> = ({
           <pattern id="dots" width="30" height="30" patternUnits="userSpaceOnUse">
             <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.04)" />
           </pattern>
-          <marker id="arrow-ref" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-reference)" fillOpacity="0.85" />
+          <filter id="edge-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.25" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <marker
+            id="marker-arrow"
+            markerUnits="userSpaceOnUse"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+            overflow="visible"
+          >
+            <path d="M 0 0 L 10 3.5 L 0 7 Z" fill="context-stroke" />
           </marker>
-          <marker id="arrow-ext" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-extends)" fillOpacity="0.85" />
+          <marker
+            id="marker-triangle-open"
+            markerUnits="userSpaceOnUse"
+            markerWidth="11"
+            markerHeight="8"
+            refX="9.5"
+            refY="4"
+            orient="auto"
+            overflow="visible"
+          >
+            <path
+              d="M 0 0 L 9.5 4 L 0 8"
+              fill="none"
+              stroke="context-stroke"
+              strokeWidth={1.35}
+              strokeLinejoin="miter"
+            />
           </marker>
-          <marker id="arrow-fk" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-fk)" fillOpacity="0.85" />
-          </marker>
-          <marker id="arrow-ref-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-reference)" fillOpacity="0.15" />
-          </marker>
-          <marker id="arrow-ext-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-extends)" fillOpacity="0.15" />
-          </marker>
-          <marker id="arrow-fk-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-fk)" fillOpacity="0.15" />
+          <marker
+            id="marker-diamond-open"
+            markerUnits="userSpaceOnUse"
+            markerWidth="12"
+            markerHeight="12"
+            refX="12"
+            refY="6"
+            orient="auto"
+            overflow="visible"
+          >
+            <path
+              d="M 6 0 L 12 6 L 6 12 L 0 6 Z"
+              fill="none"
+              stroke="context-stroke"
+              strokeWidth={1.2}
+              strokeLinejoin="miter"
+            />
           </marker>
         </defs>
 
@@ -193,76 +482,9 @@ export const Canvas: React.FC<CanvasProps> = ({
           fill="url(#dots)"
         />
 
-        {/* Edges */}
-        {edges.map((edge, i) => {
-          if (!activeEdges.has(edge.kind)) return null;
-
-          const src = nodes.find(n => n.id === edge.sourceNodeId);
-          const tgt = nodes.find(n => n.id === edge.targetNodeId);
-          if (!src || !tgt) return null;
-          
-          // Only draw the edge if BOTH connected nodes are currently visible
-          if (!activeKinds.has(src.kind) || !activeKinds.has(tgt.kind)) return null;
-
-          const nodeWidth = 240;
-          const nodeHeaderH = 38;
-          const sx = (src.x || 0) + nodeWidth;
-          const sy = (src.y || 0) + nodeHeaderH / 2;
-          const tx = (tgt.x || 0);
-          const ty = (tgt.y || 0) + nodeHeaderH / 2;
-          const cx = (sx + tx) / 2;
-
-          const isConnectedToSelected = !selectedNodeId
-            || edge.sourceNodeId === selectedNodeId
-            || edge.targetNodeId === selectedNodeId;
-
-          const dim = selectedNodeId !== null && !isConnectedToSelected;
-
-          const strokeColor = edge.kind === 'extends' || edge.kind === 'implements'
-            ? 'var(--edge-extends)' : edge.kind === 'foreign-key' ? 'var(--edge-fk)' : 'var(--edge-reference)';
-
-          const markerSuffix = dim ? '-dim' : '';
-          const markerBase = edge.kind === 'extends' || edge.kind === 'implements'
-            ? 'arrow-ext' : edge.kind === 'foreign-key' ? 'arrow-fk' : 'arrow-ref';
-
-          return (
-            <g key={`edge-${i}`}>
-              {/* Wider invisible path for easier hover */}
-              <path
-                d={`M ${sx} ${sy} C ${cx + 30} ${sy}, ${cx - 30} ${ty}, ${tx} ${ty}`}
-                stroke="transparent"
-                strokeWidth="12"
-                fill="none"
-                style={{ cursor: 'crosshair' }}
-                onMouseEnter={e => handleEdgeMouseEnter(e, edge)}
-                onMouseLeave={handleEdgeMouseLeave}
-              />
-              <path
-                d={`M ${sx} ${sy} C ${cx + 30} ${sy}, ${cx - 30} ${ty}, ${tx} ${ty}`}
-                stroke={strokeColor}
-                strokeWidth={dim ? 1 : 1.5}
-                strokeOpacity={dim ? 0.08 : 0.55}
-                fill="none"
-                markerEnd={`url(#${markerBase}${markerSuffix})`}
-                strokeDasharray={edge.kind === 'references' ? '6 3' : undefined}
-                style={{ pointerEvents: 'none' }}
-              />
-              {edge.label && !dim && (
-                <text
-                  x={(sx + tx) / 2}
-                  y={(sy + ty) / 2 - 6}
-                  fill={strokeColor}
-                  fontSize="9"
-                  textAnchor="middle"
-                  opacity="0.7"
-                  style={{ userSelect: 'none' }}
-                >
-                  {edge.label}
-                </text>
-              )}
-            </g>
-          );
-        })}
+        {/* Edges: dim + normal first, then highlighted on top */}
+        <g className="skema-edges-back">{backEdges.map(renderPreparedEdge)}</g>
+        <g className="skema-edges-front">{frontEdges.map(renderPreparedEdge)}</g>
 
         {/* Nodes */}
         {nodes.map(node => {
@@ -373,7 +595,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           pointerEvents: 'auto',
           border: '1px solid var(--section-divider)',
         }}>
-          <Search size={14} color="var(--text-muted)" />
+          <Search size={16} strokeWidth={2} color="var(--text-muted)" aria-hidden />
           <input 
             type="text" 
             placeholder="Search nodes, fields, types..." 

@@ -1,6 +1,21 @@
 import React from 'react';
 import type { SchemaNode } from '../types';
-import { Box, Hash, Type, Key, AlignLeft, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Braces,
+  ChevronLeft,
+  ChevronRight,
+  CircleDot,
+  Cuboid,
+  FolderTree,
+  FunctionSquare,
+  ListOrdered,
+  Table2,
+} from 'lucide-react';
+
+/** Default row icon size in Explorer / kind list */
+export const KIND_ICON_SIZE = 16;
+const EXPLORER_TITLE_ICON = 17;
+const CHEVRON_SIZE = 20;
 
 const COLLAPSED_WIDTH = 44;
 
@@ -61,7 +76,7 @@ export const ExplorerTopChrome: React.FC<ExplorerChromeProps> = ({ collapsed, on
             e.currentTarget.style.color = 'var(--text-muted)';
           }}
         >
-          <ChevronRight size={18} strokeWidth={2} />
+          <ChevronRight size={CHEVRON_SIZE} strokeWidth={2.25} />
         </button>
       </div>
     );
@@ -70,7 +85,7 @@ export const ExplorerTopChrome: React.FC<ExplorerChromeProps> = ({ collapsed, on
   return (
     <div className="skema-explorer-top-cell skema-explorer-top-cell--expanded">
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-        <Layers size={14} color="var(--text-main)" strokeWidth={2} /> Explorer
+        <FolderTree size={EXPLORER_TITLE_ICON} color="var(--text-main)" strokeWidth={2} aria-hidden /> Explorer
       </div>
       <button
         type="button"
@@ -87,7 +102,7 @@ export const ExplorerTopChrome: React.FC<ExplorerChromeProps> = ({ collapsed, on
           e.currentTarget.style.color = 'var(--text-muted)';
         }}
       >
-        <ChevronLeft size={18} strokeWidth={2} />
+        <ChevronLeft size={CHEVRON_SIZE} strokeWidth={2.25} />
       </button>
     </div>
   );
@@ -99,13 +114,27 @@ interface ExplorerBodyProps {
   collapsed: boolean;
 }
 
-export const getIconForKind = (kind: string) => {
+const iconProps = (size: number, colorVar: string) => ({
+  size,
+  color: colorVar,
+  strokeWidth: 2 as const,
+  'aria-hidden': true as const,
+});
+
+export const getIconForKind = (kind: string, size: number = KIND_ICON_SIZE) => {
   switch (kind) {
-    case 'interface': return <Hash size={14} color="var(--kind-interface)" />;
-    case 'class': return <Box size={14} color="var(--kind-class)" />;
-    case 'enum': return <Type size={14} color="var(--kind-enum)" />;
-    case 'table': return <Key size={14} color="var(--kind-table)" />;
-    default: return <AlignLeft size={14} color="var(--kind-scalar)" />;
+    case 'interface':
+      return <Braces {...iconProps(size, 'var(--kind-interface)')} />;
+    case 'class':
+      return <Cuboid {...iconProps(size, 'var(--kind-class)')} />;
+    case 'enum':
+      return <ListOrdered {...iconProps(size, 'var(--kind-enum)')} />;
+    case 'table':
+      return <Table2 {...iconProps(size, 'var(--kind-table)')} />;
+    case 'method':
+      return <FunctionSquare {...iconProps(size, 'var(--kind-method)')} />;
+    default:
+      return <CircleDot {...iconProps(size, 'var(--kind-scalar)')} />;
   }
 };
 
@@ -163,7 +192,7 @@ export const ExplorerBody: React.FC<ExplorerBodyProps> = ({ nodes, onNavigate, c
                 {parent.displayName}
               </div>
 
-              <div style={{ paddingLeft: '26px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <div style={{ paddingLeft: `${8 + KIND_ICON_SIZE + 6}px`, marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 {parent.fields.map(field => (
                   <div
                     key={field.name}

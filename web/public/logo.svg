@@ -1,50 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 48" fill="none">
-  <defs>
-    <filter id="card-shadow" x="-30%" y="-25%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#000000" flood-opacity="0.6"/>
-    </filter>
-    <filter id="mark-shadow" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#92400e" flood-opacity="0.45"/>
-    </filter>
-    <filter id="text-shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.4"/>
-    </filter>
-  </defs>
-
-  <!-- Icon card -->
-  <rect x="3" y="2" width="42" height="44" rx="9" fill="#100c09" filter="url(#card-shadow)"/>
-
-  <!-- Geometric S mark -->
-  <path
-    d="M 31 13 C 31 9 14 9 14 20 C 14 28 34 28 34 35 C 34 40 17 40 17 37"
-    stroke="#fbbf24"
-    stroke-width="6.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    fill="none"
-    filter="url(#mark-shadow)"
-  />
-
-  <!-- Wordmark -->
-  <text
-    x="58"
-    y="27"
-    font-family="'JetBrains Mono', 'Courier New', monospace"
-    font-weight="700"
-    font-size="16"
-    letter-spacing="3.5"
-    fill="#fbbf24"
-    filter="url(#text-shadow)"
-  >SKEMA</text>
-
-  <!-- Subtitle -->
-  <text
-    x="59.5"
-    y="40"
-    font-family="'JetBrains Mono', 'Courier New', monospace"
-    font-weight="400"
-    font-size="7"
-    letter-spacing="4"
-    fill="#bdaea3"
-  >VISUALIZER</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" fill="none">
+  <!-- Edges -->
+  <line x1="14" y1="5" x2="5" y2="21" stroke="#C47A3A" stroke-width="1.8" stroke-opacity="0.5" stroke-linecap="round"/>
+  <line x1="14" y1="5" x2="23" y2="21" stroke="#C47A3A" stroke-width="1.8" stroke-opacity="0.5" stroke-linecap="round"/>
+  <line x1="5" y1="21" x2="23" y2="21" stroke="#C47A3A" stroke-width="1.8" stroke-opacity="0.5" stroke-linecap="round"/>
+  <!-- Nodes -->
+  <circle cx="14" cy="5" r="3.5" fill="#C47A3A"/>
+  <circle cx="5" cy="21" r="3.5" fill="#C47A3A"/>
+  <circle cx="23" cy="21" r="3.5" fill="#C47A3A"/>
 </svg>

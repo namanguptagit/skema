@@ -1,7 +1,11 @@
 import React from 'react';
 import type { SchemaNode, SchemaEdge } from '../types';
 import { X, ArrowRight, ArrowLeft } from 'lucide-react';
-import { getIconForKind } from './MethodTree';
+import { getIconForKind, KIND_ICON_SIZE } from './MethodTree';
+
+const DETAIL_CHROME_ICON = Math.round(KIND_ICON_SIZE * 1.06);
+const EDGE_ARROW_SIZE = 16;
+const CLOSE_ICON_SIZE = 20;
 
 interface NodeDetailDrawerProps {
   node: SchemaNode;
@@ -40,7 +44,7 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
       {/* Top chrome — same language as Explorer strip */}
       <div className="skema-explorer-top-cell skema-explorer-top-cell--expanded">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-          {getIconForKind(node.kind)}
+          {getIconForKind(node.kind, DETAIL_CHROME_ICON)}
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: '13px',
@@ -57,7 +61,7 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
           aria-label="Close details"
           onClick={onClose}
         >
-          <X size={18} strokeWidth={2} />
+          <X size={CLOSE_ICON_SIZE} strokeWidth={2.25} aria-hidden />
         </button>
       </div>
 
@@ -191,7 +195,7 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
                     className="skema-detail-drawer-edge-btn"
                     onClick={() => onNavigate(target.id)}
                   >
-                    <ArrowRight size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    <ArrowRight size={EDGE_ARROW_SIZE} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} aria-hidden />
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, fontWeight: 500, textTransform: 'uppercase' }}>
                       {edge.kind}
                     </span>
@@ -231,7 +235,7 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
                     className="skema-detail-drawer-edge-btn"
                     onClick={() => onNavigate(src.id)}
                   >
-                    <ArrowLeft size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    <ArrowLeft size={EDGE_ARROW_SIZE} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} aria-hidden />
                     <span style={{
                       fontWeight: 600,
                       fontSize: '13px',

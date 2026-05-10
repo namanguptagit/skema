@@ -5,10 +5,16 @@ import { Editor } from './components/Editor';
 import { ExplorerTopChrome, ExplorerBody, COLLAPSED_WIDTH } from './components/MethodTree';
 import { Canvas } from './components/Canvas';
 import { NodeDetailDrawer } from './components/NodeDetailDrawer';
-import { LayoutDashboard, Share2, ExternalLink, Download, Image as ImageIcon, FileJson, Link, X } from 'lucide-react';
+import { FolderOutput, ExternalLink, Download, Image as ImageIcon, FileJson, Link2, X, RefreshCw } from 'lucide-react';
 import { autoLayout } from './utils/layout';
 import { toPng, toSvg } from 'html-to-image';
 import type { ParsedSchema, NodeKind, RelationshipKind, SchemaNode } from './types';
+
+const HEADER_ICON = 16;
+const HEADER_LINK_ICON = 18;
+const TAB_CLOSE_ICON = 14;
+/** Matches ~13px label cap height so Re-layout reads balanced */
+const RELAYOUT_ICON_SIZE = 18;
 
 const DEFAULT_SCHEMA = `interface Profile {
   bio: string;
@@ -247,7 +253,7 @@ function App() {
             borderRadius: 'var(--radius-workspace)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
           }}>
-            <LayoutDashboard size={18} color="var(--text-main)" />
+            <img src="/logo.svg" width={22} height={22} alt="Skema" />
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', color: 'var(--text-main)' }}>Skema</h1>
@@ -261,56 +267,20 @@ function App() {
           </div>
           <button
             type="button"
+            className="skema-btn skema-btn--secondary skema-btn--display skema-btn--gap-tight"
             onClick={handleRelayout}
             title="Re-run auto-layout (clears manual positions)"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px',
-              borderRadius: 'var(--radius-workspace)',
-              background: 'var(--bg-panel)',
-              border: '1px solid var(--section-divider)',
-              color: 'var(--text-main)', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-              fontFamily: 'var(--font-display)',
-              transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-              e.currentTarget.style.borderColor = 'var(--border-strong)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'var(--bg-panel)';
-              e.currentTarget.style.borderColor = 'var(--section-divider)';
-            }}
           >
-            ⟳ Re-layout
+            <RefreshCw size={RELAYOUT_ICON_SIZE} strokeWidth={2.25} aria-hidden className="skema-btn-lead-icon" />
+            Re-layout
           </button>
           <div style={{ position: 'relative' }}>
             <button
               type="button"
+              className="skema-btn skema-btn--primary skema-btn--mono skema-btn--uppercase"
               onClick={() => setShowExportMenu(!showExportMenu)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '8px 16px',
-                borderRadius: 'var(--radius-workspace)',
-                background: 'var(--bg-panel)',
-                border: '1px solid var(--section-divider)',
-                color: 'var(--text-main)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'var(--font-mono)',
-                textTransform: 'uppercase',
-                transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                e.currentTarget.style.borderColor = 'var(--border-strong)';
-                e.currentTarget.style.color = 'var(--text-muted)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'var(--bg-panel)';
-                e.currentTarget.style.borderColor = 'var(--section-divider)';
-                e.currentTarget.style.color = 'var(--text-main)';
-              }}
             >
-              <Share2 size={14} /> EXPORT
+              <FolderOutput size={HEADER_ICON} strokeWidth={2} aria-hidden /> EXPORT
             </button>
             {showExportMenu && (
               <div style={{
@@ -342,10 +312,10 @@ function App() {
                   };
                   return (
                     <>
-                      <button type="button" onClick={exportSvg} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Download size={14} /> Export SVG</button>
-                      <button type="button" onClick={exportPng} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><ImageIcon size={14} /> Export PNG</button>
-                      <button type="button" onClick={exportJson} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><FileJson size={14} /> Export JSON</button>
-                      <button type="button" onClick={shareLink} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Link size={14} /> Copy Share Link</button>
+                      <button type="button" onClick={exportSvg} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Download size={HEADER_ICON} strokeWidth={2} aria-hidden /> Export SVG</button>
+                      <button type="button" onClick={exportPng} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><ImageIcon size={HEADER_ICON} strokeWidth={2} aria-hidden /> Export PNG</button>
+                      <button type="button" onClick={exportJson} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><FileJson size={HEADER_ICON} strokeWidth={2} aria-hidden /> Export JSON</button>
+                      <button type="button" onClick={shareLink} style={menuBtnStyle} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}><Link2 size={HEADER_ICON} strokeWidth={2} aria-hidden /> Copy Share Link</button>
                     </>
                   );
                 })()}
@@ -373,7 +343,7 @@ function App() {
               e.currentTarget.style.color = 'var(--text-muted)';
             }}
           >
-            <ExternalLink size={20} />
+            <ExternalLink size={HEADER_LINK_ICON} strokeWidth={2} aria-hidden />
           </a>
         </div>
       </header>
@@ -495,7 +465,7 @@ function App() {
                         e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)';
                       }}
                     >
-                      <X size={11} strokeWidth={2} />
+                      <X size={TAB_CLOSE_ICON} strokeWidth={2.25} aria-hidden />
                     </div>
                   )}
                 </div>
