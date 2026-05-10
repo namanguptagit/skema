@@ -14,6 +14,12 @@ an interactive, draggable entity-relationship diagram, all running at native spe
 
 </div>
 
+<div align="center">
+
+<img src="assets/skema-app.webp" alt="Skema app: Prisma schema in the editor, explorer tree, and interactive graph canvas" width="100%" />
+
+</div>
+
 ---
 
 ## What is Skema?
