@@ -44,9 +44,9 @@ function App() {
         try {
           const parsed = JSON.parse(decoded);
           if (Array.isArray(parsed)) return parsed;
-        } catch(e) {}
+        } catch { /* ignore */ }
         return [{ id: '1', name: 'shared.ts', content: decoded }];
-      } catch(e) {}
+      } catch { /* ignore */ }
     }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -55,7 +55,7 @@ function App() {
         if (parsed.files) return parsed.files;
         if (parsed.input) return [{ id: '1', name: 'schema.ts', content: parsed.input }];
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
     return [{ id: '1', name: 'schema.ts', content: DEFAULT_SCHEMA }];
   });
   const [activeFileId, setActiveFileId] = useState<string>('1');
@@ -130,7 +130,7 @@ function App() {
           Object.keys(parsed.positions).forEach(id => pinnedIds.current.add(id));
         }
       }
-    } catch (e) {}
+    } catch { /* ignore */ }
     init().then(() => setWasmReady(true));
   }, []);
 
@@ -150,6 +150,7 @@ function App() {
     if (!wasmReady) return;
     try {
       let allNodes: SchemaNode[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let allEdges: any[] = [];
       
       currentFiles.forEach(f => {
@@ -197,7 +198,7 @@ function App() {
 
   // Parse immediately once WASM becomes ready
   useEffect(() => {
-    if (wasmReady) runParse(files);
+    if (wasmReady) runParse(files); // eslint-disable-line react-hooks/set-state-in-effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wasmReady]);
 
