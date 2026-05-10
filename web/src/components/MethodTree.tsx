@@ -189,6 +189,7 @@ export const ExplorerBody: React.FC<ExplorerBodyProps> = ({ nodes, onNavigate, c
         <div style={{ flex: 1, minHeight: 0, background: 'var(--bg-editor-body)' }} aria-hidden />
       ) : (
         <div
+          className="skema-explorer-scroll"
           style={{
             flex: 1,
             minHeight: 0,

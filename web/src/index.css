@@ -1,8 +1,8 @@
 :root {
   --font-display: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  /* App header wordmark only (Bricolage Grotesque from index.html) */
-  --font-logo: 'Bricolage Grotesque', var(--font-display), sans-serif;
+  /* App header wordmark only (Outfit from index.html) */
+  --font-logo: 'Outfit', var(--font-display), sans-serif;
 
   /* Base — flat neutrals */
   --bg-obsidian: #1a1a18;
@@ -65,12 +65,12 @@
   --ui-danger: #8b5048;
   --ui-focus: #e8e6e1;
 
-  /* Brand — primary actions (warm, AA contrast with --color-on-primary) */
-  --color-primary: #C47A3A;
-  --color-primary-hover: #D48A4A;
-  --color-primary-active: #B06A2A;
+  /* Brand — primary actions (cool blue, AA contrast with --color-on-primary) */
+  --color-primary: #5488C4;
+  --color-primary-hover: #6395CE;
+  --color-primary-active: #4578B8;
   --color-on-primary: #FFFFFF;
-  --color-primary-subtle: rgba(196, 122, 58, 0.14);
+  --color-primary-subtle: rgba(84, 136, 196, 0.14);
 
   /* Schema editor syntax — distinct hues on --bg-inset (avoid flat node grays) */
   --syntax-default: #e6e4de;
@@ -192,6 +192,12 @@ body {
 .skema-btn-lead-icon {
   flex-shrink: 0;
   stroke: currentColor;
+}
+
+/* Filled brand icons (e.g. react-icons Simple Icons) inside stroke-based button chrome */
+.skema-btn--secondary svg.skema-btn-icon-fill {
+  stroke: none;
+  fill: currentColor;
 }
 
 .skema-btn--secondary {
@@ -345,7 +351,7 @@ body.skema-pane-resizing {
 }
 
 .skema-file-tabs-row::-webkit-scrollbar {
-  height: 6px;
+  height: 8px;
 }
 
 .skema-file-tabs-row::-webkit-scrollbar-track {
@@ -354,34 +360,50 @@ body.skema-pane-resizing {
 
 .skema-file-tabs-row::-webkit-scrollbar-thumb {
   background: var(--section-divider);
-  border-radius: 3px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .skema-file-tabs-row::-webkit-scrollbar-thumb:hover {
   background: var(--border-strong);
+  background-clip: content-box;
 }
 
-/* Node detail drawer and other vertical scroll strips */
-.skema-drawer-scroll {
+/* Vertical scrollbars — code editor, explorer, node drawer (inset thumb) */
+.skema-codemirror-root .cm-scroller,
+.skema-drawer-scroll,
+.skema-explorer-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--section-divider) transparent;
 }
 
-.skema-drawer-scroll::-webkit-scrollbar {
-  width: 6px;
+.skema-codemirror-root .cm-scroller::-webkit-scrollbar,
+.skema-drawer-scroll::-webkit-scrollbar,
+.skema-explorer-scroll::-webkit-scrollbar {
+  width: 8px;
 }
 
-.skema-drawer-scroll::-webkit-scrollbar-track {
+.skema-codemirror-root .cm-scroller::-webkit-scrollbar-track,
+.skema-drawer-scroll::-webkit-scrollbar-track,
+.skema-explorer-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.skema-drawer-scroll::-webkit-scrollbar-thumb {
+.skema-codemirror-root .cm-scroller::-webkit-scrollbar-thumb,
+.skema-drawer-scroll::-webkit-scrollbar-thumb,
+.skema-explorer-scroll::-webkit-scrollbar-thumb {
   background: var(--section-divider);
-  border-radius: 3px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
-.skema-drawer-scroll::-webkit-scrollbar-thumb:hover {
+.skema-codemirror-root .cm-scroller::-webkit-scrollbar-thumb:hover,
+.skema-drawer-scroll::-webkit-scrollbar-thumb:hover,
+.skema-explorer-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--border-strong);
+  background-clip: content-box;
 }
 
 /* Node detail drawer — canvas-aligned shell + flat rows */
@@ -552,10 +574,13 @@ body.skema-pane-resizing {
   flex: 1;
   min-height: 0;
   height: 100%;
+  border-radius: calc(var(--radius-workspace) - 2px);
+  overflow: hidden;
 }
 
 .skema-codemirror-root .cm-scroller {
   min-height: 0;
+  border-radius: calc(var(--radius-workspace) - 2px);
 }
 
 .skema-section-footer {

@@ -5,16 +5,19 @@ import { Editor } from './components/Editor';
 import { ExplorerTopChrome, ExplorerBody, COLLAPSED_WIDTH } from './components/MethodTree';
 import { Canvas } from './components/Canvas';
 import { NodeDetailDrawer } from './components/NodeDetailDrawer';
-import { FolderOutput, ExternalLink, Download, Image as ImageIcon, FileJson, Link2, X, RefreshCw } from 'lucide-react';
+import { FolderOutput, Download, Image as ImageIcon, FileJson, Link2, X, RefreshCw } from 'lucide-react';
+import { SiGithub } from 'react-icons/si';
 import { autoLayout } from './utils/layout';
 import { toPng, toSvg } from 'html-to-image';
 import type { ParsedSchema, NodeKind, RelationshipKind, SchemaNode } from './types';
 
 const HEADER_ICON = 16;
-const HEADER_LINK_ICON = 18;
 const TAB_CLOSE_ICON = 14;
 /** Matches ~13px label cap height so Re-layout reads balanced */
 const RELAYOUT_ICON_SIZE = 18;
+
+const GITHUB_REPO_URL = 'https://github.com/namanguptagit/skema';
+const GITHUB_HEADER_ICON = 20;
 
 const DEFAULT_SCHEMA = `interface Profile {
   bio: string;
@@ -421,27 +424,18 @@ function App() {
             )}
           </div>
           <a
-            href="https://github.com"
+            href={GITHUB_REPO_URL}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            className="skema-btn skema-btn--secondary"
+            aria-label="View Skema on GitHub"
+            title="View Skema on GitHub"
             style={{
               padding: '8px',
-              borderRadius: 'var(--radius-workspace)',
-              color: 'var(--text-muted)',
               textDecoration: 'none',
-              display: 'flex',
-              transition: 'background 150ms ease, color 150ms ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-              e.currentTarget.style.color = 'var(--text-main)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
             }}
           >
-            <ExternalLink size={HEADER_LINK_ICON} strokeWidth={2} aria-hidden />
+            <SiGithub className="skema-btn-icon-fill" size={GITHUB_HEADER_ICON} aria-hidden />
           </a>
         </div>
       </header>
