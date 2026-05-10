@@ -9,11 +9,11 @@ interface MethodTreeProps {
 
 const getIconForKind = (kind: string) => {
   switch (kind) {
-    case 'interface': return <Hash size={14} color="#818cf8" />;
-    case 'class': return <Box size={14} color="#34d399" />;
-    case 'enum': return <Type size={14} color="#fbbf24" />;
-    case 'table': return <Key size={14} color="#f87171" />;
-    default: return <AlignLeft size={14} color="#94a3b8" />;
+    case 'interface': return <Hash size={14} color="var(--accent-gold)" />;
+    case 'class': return <Box size={14} color="var(--accent-copper)" />;
+    case 'enum': return <Type size={14} color="var(--accent-amber)" />;
+    case 'table': return <Key size={14} color="var(--accent-rust)" />;
+    default: return <AlignLeft size={14} color="var(--accent-sand)" />;
   }
 };
 
@@ -23,59 +23,70 @@ export const MethodTree: React.FC<MethodTreeProps> = ({ nodes, onNavigate }) => 
 
   return (
     <div style={{
-      width: '240px',
-      background: '#0f172a',
-      borderRight: '1px solid #1e293b',
+      width: '260px',
+      background: 'rgba(10, 10, 10, 0.5)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      borderRight: '1px solid var(--border-stark)',
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      overflow: 'hidden'
+      overflow: 'hidden',
     }}>
       <div style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid #1e293b',
+        padding: '16px',
+        borderBottom: '1px solid var(--border-stark)',
+        background: 'transparent',
         fontSize: '11px',
         fontWeight: 600,
-        color: '#94a3b8',
+        color: 'var(--text-muted)',
         textTransform: 'uppercase',
-        letterSpacing: '0.5px',
+        letterSpacing: '1px',
         display: 'flex',
         alignItems: 'center',
-        gap: '6px'
+        gap: '8px',
+        fontFamily: 'var(--font-display)'
       }}>
-        <Layers size={14} /> Explorer
+        <Layers size={14} color="var(--text-main)" /> Explorer
       </div>
       
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
         {parents.map(parent => (
-          <div key={parent.id} style={{ marginBottom: '12px' }}>
+          <div key={parent.id} style={{ marginBottom: '16px' }}>
             <div 
               onClick={() => onNavigate(parent.id)}
               style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '4px 8px', borderRadius: '6px',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '6px 10px', borderRadius: '6px',
                 cursor: 'pointer', fontSize: '13px',
-                color: '#e2e8f0', fontWeight: 500,
+                color: 'var(--text-main)', fontWeight: 600,
+                fontFamily: 'var(--font-display)',
+                transition: 'all 0.2s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               {getIconForKind(parent.kind)}
               {parent.displayName}
             </div>
             
-            <div style={{ paddingLeft: '22px', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ paddingLeft: '26px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {parent.fields.map(field => (
                 <div 
                   key={field.name}
                   style={{
-                    fontSize: '12px', color: '#94a3b8',
-                    padding: '2px 4px', borderRadius: '4px',
+                    fontSize: '12px', color: 'var(--text-muted)',
+                    padding: '2px 0px', display: 'flex', alignItems: 'center',
+                    fontFamily: 'var(--font-mono)'
                   }}
                 >
-                  <span style={{ color: '#cbd5e1' }}>{field.name}</span>
+                  <span style={{ color: 'var(--text-main)', marginRight: '6px', opacity: 0.9 }}>{field.name}</span>
                   {parent.kind !== 'enum' && (
-                    <span style={{ color: '#64748b', marginLeft: '4px' }}>: {field.ty}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>{field.ty}</span>
                   )}
                 </div>
               ))}
@@ -83,8 +94,8 @@ export const MethodTree: React.FC<MethodTreeProps> = ({ nodes, onNavigate }) => 
           </div>
         ))}
         {parents.length === 0 && (
-          <div style={{ padding: '16px', color: '#64748b', fontSize: '12px', textAlign: 'center' }}>
-            No structures parsed yet.
+          <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', fontWeight: 500 }}>
+            No structured types found
           </div>
         )}
       </div>

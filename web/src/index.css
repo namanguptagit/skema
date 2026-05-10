@@ -1,11 +1,28 @@
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-display: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --bg-obsidian: #0a0806;
+  --bg-panel: rgba(26, 20, 15, 0.65);
+  --border-stark: rgba(251, 191, 36, 0.15);
+  --text-main: #fffcf2;
+  --text-muted: #bdaea3;
+  
+  /* Modern Accents (Yellow/Brownish) */
+  --accent-gold: #fbbf24;
+  --accent-amber: #f59e0b;
+  --accent-copper: #d97706;
+  --accent-rust: #b45309;
+  --accent-sand: #d6d3d1;
+  --accent-earth: #78350f;
+
+  font-family: var(--font-display);
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: dark;
-  color: #e2e8f0;
-  background-color: #0f172a;
+  color: var(--text-main);
+  background-color: var(--bg-obsidian);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,6 +37,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow: hidden;
+  background: radial-gradient(circle at 50% -20%, #291b10 0%, var(--bg-obsidian) 100%);
 }
 
 #root {
@@ -28,19 +46,23 @@ body {
 }
 
 .glass {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-stark);
   border-radius: 12px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .node-card {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.2s ease;
   cursor: grab;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 
 .node-card:hover {
-  filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.4));
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.15);
 }
 
 .node-card:active {
