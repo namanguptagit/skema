@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import init, { parse_schema_wasm } from './core_pkg/core';
 import { Editor } from './components/Editor';
-import { MethodTree } from './components/MethodTree';
+import { ExplorerTopChrome, ExplorerBody, COLLAPSED_WIDTH } from './components/MethodTree';
 import { Canvas } from './components/Canvas';
 import { NodeDetailDrawer } from './components/NodeDetailDrawer';
 import { LayoutDashboard, Share2, ExternalLink, Download, Image as ImageIcon, FileJson, Link, X } from 'lucide-react';
@@ -79,6 +79,7 @@ function App() {
     new Set(['extends', 'implements', 'references', 'returns', 'has-field', 'foreign-key'])
   );
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [explorerCollapsed, setExplorerCollapsed] = useState(false);
 
   const exportSvg = () => {
     const el = document.querySelector('.skema-canvas-container') as HTMLElement;
@@ -223,15 +224,16 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', background: 'var(--bg-obsidian)', color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', background: 'var(--bg-workspace)', color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
       {/* Header */}
       <header style={{
-        height: '64px',
-        borderBottom: '1px solid var(--border-stark)',
+        height: '56px',
+        borderBottom: '1px solid var(--section-divider)',
+        boxShadow: 'var(--shadow-app-header)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 24px',
+        padding: '0 22px',
         background: 'var(--bg-panel)',
         flexShrink: 0,
         zIndex: 100,
@@ -330,77 +332,166 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Sidebar Editor */}
-        <aside style={{
-          width: '420px',
-          borderRight: '2px solid var(--border-stark)',
-          background: 'var(--bg-panel)',
-          display: 'flex',
-          flexDirection: 'column',
-          flexShrink: 0,
-        }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden', minHeight: 0, background: 'var(--bg-workspace)' }}>
+        {/* Editor + Explorer: shared height; top row = tabs | Explorer chrome */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexShrink: 0,
+            height: '100%',
+            minHeight: 0,
+            alignItems: 'stretch',
+          }}
+        >
+          <div
+            className="skema-workspace-column"
+            style={{
+              width: '420px',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--bg-editor-body)',
+            }}
+          >
           {/* File Tabs */}
-          <div style={{ display: 'flex', borderBottom: '2px solid var(--border-stark)', background: 'var(--bg-obsidian)', overflowX: 'auto' }}>
-            {files.map(f => (
-              <div 
-                key={f.id}
-                onClick={() => setActiveFileId(f.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '10px 16px', fontSize: '12px', cursor: 'pointer',
-                  borderRight: '2px solid var(--border-stark)',
-                  color: activeFileId === f.id ? 'var(--text-main)' : 'var(--text-muted)',
-                  background: activeFileId === f.id ? 'var(--bg-elevated)' : 'transparent',
-                  fontWeight: activeFileId === f.id ? 700 : 400,
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap'
-                }}>
-                <span>{f.name}</span>
-                {files.length > 1 && (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newFiles = files.filter(file => file.id !== f.id);
-                      setFiles(newFiles);
-                      if (activeFileId === f.id) {
-                        setActiveFileId(newFiles[0].id);
-                      }
-                    }}
+          <div className="skema-file-tabs-row">
+            {files.map(f => {
+              const isActive = activeFileId === f.id;
+              return (
+                <div
+                  key={f.id}
+                  onClick={() => setActiveFileId(f.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '0 10px',
+                    height: 'calc(var(--file-tabs-row-height) - 1px)',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    letterSpacing: 'normal',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: isActive ? 500 : 400,
+                    color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
+                    background: isActive ? 'var(--bg-editor-body)' : 'transparent',
+                    borderRadius: '8px 8px 0 0',
+                    border: '1px solid transparent',
+                    borderBottom: 'none',
+                    boxSizing: 'border-box',
+                    boxShadow: isActive ? 'inset 0 -2px 0 0 var(--accent-line)' : 'none',
+                    transition: 'color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = 'var(--text-main)';
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <span
+                    title={f.name}
                     style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      borderRadius: '50%', padding: '2px',
-                      background: activeFileId === f.id ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.04)',
-                      color: activeFileId === f.id ? 'var(--text-main)' : 'var(--text-muted)',
-                      transition: 'background 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.08)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.04)';
+                      maxWidth: 110,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      minWidth: 0,
                     }}
                   >
-                    <X size={12} />
-                  </div>
-                )}
-              </div>
-            ))}
-            <div 
+                    {f.name}
+                  </span>
+                  {files.length > 1 && (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newFiles = files.filter(file => file.id !== f.id);
+                        setFiles(newFiles);
+                        if (activeFileId === f.id) {
+                          setActiveFileId(newFiles[0].id);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const newFiles = files.filter(file => file.id !== f.id);
+                          setFiles(newFiles);
+                          if (activeFileId === f.id) {
+                            setActiveFileId(newFiles[0].id);
+                          }
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '6px',
+                        padding: '2px',
+                        background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+                        color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)';
+                      }}
+                    >
+                      <X size={11} strokeWidth={2} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              aria-label="New file"
               onClick={() => {
                 const newId = Date.now().toString();
                 setFiles([...files, { id: newId, name: `schema_${files.length + 1}.txt`, content: '' }]);
                 setActiveFileId(newId);
               }}
               style={{
-                padding: '10px 16px', fontSize: '16px', cursor: 'pointer', color: 'var(--text-muted)',
-                display: 'flex', alignItems: 'center', background: 'transparent'
+                marginLeft: '4px',
+                width: '28px',
+                height: '28px',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                lineHeight: 1,
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                background: 'transparent',
+                border: '1px dashed var(--section-divider)',
+                borderRadius: 'var(--radius-workspace)',
+                transition: 'color 0.15s ease, border-color 0.15s ease, background 0.15s ease',
               }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-main)';
+                e.currentTarget.style.borderColor = 'var(--border-strong)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.borderColor = 'var(--section-divider)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               +
-            </div>
+            </button>
           </div>
 
           <Editor 
@@ -410,18 +501,51 @@ function App() {
             }} 
             parseError={parseError} 
           />
-        </aside>
+          </div>
 
-        <MethodTree 
-          nodes={schema.nodes} 
-          onNavigate={(id) => setSelectedNodeId(id)} 
-        />
+          <div
+            className="skema-explorer-column"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flexShrink: 0,
+              minHeight: 0,
+              width: explorerCollapsed ? COLLAPSED_WIDTH : 'max-content',
+              maxWidth: explorerCollapsed ? COLLAPSED_WIDTH : 'min(480px, 45vw)',
+              minWidth: explorerCollapsed ? COLLAPSED_WIDTH : 'var(--explorer-column-min-width)',
+            }}
+          >
+            <ExplorerTopChrome
+              collapsed={explorerCollapsed}
+              onToggleCollapsed={() => setExplorerCollapsed((c) => !c)}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0, overflowX: 'visible' }}>
+              <ExplorerBody
+                nodes={schema.nodes}
+                onNavigate={(id) => setSelectedNodeId(id)}
+                collapsed={explorerCollapsed}
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Canvas Area */}
-        <section style={{ flex: 1, display: 'flex', position: 'relative' }}>
-          
+        <section style={{ flex: 1, display: 'flex', position: 'relative', minHeight: 0, minWidth: 0, background: 'var(--bg-workspace)' }}>
           {/* Main Canvas Container */}
-          <div className="skema-canvas-container" style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          <div
+            className="skema-canvas-container"
+            style={{
+              flex: 1,
+              position: 'relative',
+              overflow: 'hidden',
+              minWidth: 0,
+              margin: '10px 12px 10px 6px',
+              borderRadius: 'var(--radius-workspace-lg)',
+              border: '1px solid var(--section-divider)',
+              background: 'var(--bg-obsidian)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            }}
+          >
             <Canvas
               nodes={schema.nodes}
               edges={schema.edges}

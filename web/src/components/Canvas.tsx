@@ -300,6 +300,8 @@ export const Canvas: React.FC<CanvasProps> = ({
           pointerEvents: 'none',
           zIndex: 200,
           minWidth: '140px',
+          borderRadius: 'var(--radius-workspace-lg)',
+          border: '1px solid var(--section-divider)',
         }}>
           <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
             {tooltip.kind}
@@ -320,7 +322,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         position: 'absolute', bottom: '24px', right: '24px',
         display: 'flex', flexDirection: 'column', gap: '8px',
         padding: '8px',
-        borderRadius: '24px'
+        borderRadius: 'var(--radius-workspace-lg)',
+        border: '1px solid var(--section-divider)',
       }}>
         {[
           { label: '+', fn: () => setViewBox(p => ({ ...p, w: p.w * 0.8, h: p.h * 0.8 })) },
@@ -360,8 +363,9 @@ export const Canvas: React.FC<CanvasProps> = ({
         <div className="glass" style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           padding: '8px 16px',
-          borderRadius: '24px',
-          pointerEvents: 'auto'
+          borderRadius: '999px',
+          pointerEvents: 'auto',
+          border: '1px solid var(--section-divider)',
         }}>
           <Search size={14} color="var(--text-muted)" />
           <input 
@@ -381,8 +385,9 @@ export const Canvas: React.FC<CanvasProps> = ({
         <div className="glass" style={{
           display: 'flex', alignItems: 'center', gap: '4px',
           padding: '6px 8px',
-          borderRadius: '24px',
-          pointerEvents: 'auto'
+          borderRadius: '999px',
+          pointerEvents: 'auto',
+          border: '1px solid var(--section-divider)',
         }}>
           {['interface', 'enum', 'class', 'table'].map(kind => {
             const isActive = activeKinds.has(kind as NodeKind);

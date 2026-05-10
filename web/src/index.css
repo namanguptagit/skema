@@ -11,6 +11,24 @@
   --text-main: #e8e6e1;
   --text-muted: #8f8c85;
 
+  /* Workspace layering */
+  --bg-workspace: #141413;
+  --bg-rail: #1c1c1a;
+  --bg-editor-body: #1f1f1c;
+  --bg-inset: #181816;
+  --section-divider: rgba(58, 58, 54, 0.72);
+  --workspace-pad-x: 16px;
+  --section-header-height: 44px;
+  /* Must match editor file-tabs row so Explorer header aligns with Schema Input */
+  --file-tabs-row-height: 42px;
+  --accent-line: #8a7f6a;
+  --radius-workspace: 10px;
+  --radius-workspace-lg: 12px;
+  --shadow-app-header: 0 1px 0 rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-column-inset: inset -1px 0 0 var(--section-divider);
+  --explorer-column-max-width: min(480px, 45vw);
+  --explorer-column-min-width: 180px;
+
   /* Legacy accent names — muted, for any remaining references */
   --accent-gold: #5c6d62;
   --accent-amber: #6d6658;
@@ -65,11 +83,161 @@ body {
   height: 100vh;
 }
 
+/* Section chrome — shared by Schema Input / Explorer headers */
+.skema-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--section-header-height);
+  padding: 0 var(--workspace-pad-x);
+  border-bottom: 1px solid var(--section-divider);
+  background: var(--bg-rail);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-feature-settings: "cv02" 1, "ss01" 1;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.skema-section-header--between {
+  justify-content: space-between;
+}
+
+/* Narrow Explorer rail: icon-only header row */
+.skema-section-header--rail {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
+}
+
+/* Workspace columns (editor / explorer) */
+.skema-workspace-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-column-inset);
+}
+
+/* Shared top toolbar row: file tabs (left) + Explorer chrome (right) */
+.skema-workspace-top-row {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-items: stretch;
+  min-height: var(--file-tabs-row-height);
+}
+
+.skema-file-tabs-row {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  gap: 2px;
+  height: var(--file-tabs-row-height);
+  min-height: var(--file-tabs-row-height);
+  /* height includes border so spacer + tabs row stay pixel-matched */
+  box-sizing: border-box;
+  padding: 0 var(--workspace-pad-x);
+  background: var(--bg-rail);
+  border-bottom: 1px solid var(--section-divider);
+  /* overflow-x: auto alone can force overflow-y: auto in some engines → stray vertical scrollbar */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--section-divider) transparent;
+}
+
+.skema-file-tabs-row::-webkit-scrollbar {
+  height: 6px;
+}
+
+.skema-file-tabs-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.skema-file-tabs-row::-webkit-scrollbar-thumb {
+  background: var(--section-divider);
+  border-radius: 3px;
+}
+
+.skema-file-tabs-row::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Explorer segment on the same line as file tabs */
+.skema-explorer-top-cell {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: var(--file-tabs-row-height);
+  min-height: var(--file-tabs-row-height);
+  box-sizing: border-box;
+  padding: 0 var(--workspace-pad-x);
+  background: var(--bg-rail);
+  border-bottom: 1px solid var(--section-divider);
+}
+
+.skema-explorer-top-cell--rail {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.skema-explorer-top-cell--expanded {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.skema-explorer-column {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+  background: var(--bg-editor-body);
+  box-shadow: var(--shadow-column-inset);
+  overflow-x: visible;
+}
+
+.skema-code-inset {
+  flex: 1;
+  min-height: 0;
+  margin: 12px var(--workspace-pad-x);
+  padding: 2px;
+  border-radius: var(--radius-workspace);
+  background: var(--bg-inset);
+  border: 1px solid var(--section-divider);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.skema-section-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 var(--workspace-pad-x);
+  border-top: 1px solid var(--section-divider);
+  background: var(--bg-rail);
+  flex-shrink: 0;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
 /* Solid panels — no backdrop blur */
 .glass {
   background: var(--bg-elevated);
   border: 1px solid var(--border-stark);
-  border-radius: 12px;
+  border-radius: var(--radius-workspace-lg);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .node-card {
