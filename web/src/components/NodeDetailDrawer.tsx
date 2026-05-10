@@ -11,25 +11,25 @@ interface NodeDetailDrawerProps {
 }
 
 const KIND_COLOR: Record<string, string> = {
-  interface: 'var(--accent-gold)',
-  enum:      'var(--accent-amber)',
-  class:     'var(--accent-copper)',
-  table:     'var(--accent-rust)',
-  method:    'var(--accent-earth)',
-  scalar:    'var(--accent-sand)',
+  interface: 'var(--kind-interface)',
+  enum:      'var(--kind-enum)',
+  class:     'var(--kind-class)',
+  table:     'var(--kind-table)',
+  method:    'var(--kind-method)',
+  scalar:    'var(--kind-scalar)',
 };
 
 const MODIFIER_BADGE: Record<string, { label: string; color: string }> = {
-  optional: { label: '?',        color: '#94a3b8' },
-  array:    { label: '[ ]',      color: '#60a5fa' },
-  nullable: { label: 'nullable', color: '#fbbf24' },
-  readonly: { label: 'readonly', color: '#a78bfa' },
+  optional: { label: '?',        color: '#8f8c85' },
+  array:    { label: '[ ]',      color: '#6b6e74' },
+  nullable: { label: 'nullable', color: '#7a7268' },
+  readonly: { label: 'readonly', color: '#756f68' },
 };
 
 export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
   node, edges, allNodes, onClose, onNavigate,
 }) => {
-  const color = KIND_COLOR[node.kind] ?? '#3b82f6';
+  const color = KIND_COLOR[node.kind] ?? 'var(--kind-class)';
 
   const outgoing = edges.filter(e => e.sourceNodeId === node.id);
   const incoming = edges.filter(e => e.targetNodeId === node.id);
@@ -42,12 +42,10 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
         position: 'relative',
         height: '100%',
         margin: '16px 16px 16px 0',
-        background: 'rgba(5, 5, 5, 0.5)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        background: 'var(--bg-elevated)',
         border: '1px solid var(--border-stark)',
-        borderRadius: '16px',
-        boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+        borderRadius: '8px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.35)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 100,
@@ -71,8 +69,8 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
         <div>
           <div style={{
             display: 'inline-block',
-            padding: '4px 10px', borderRadius: '12px',
-            background: `${color}20`, border: `1px solid ${color}40`,
+            padding: '4px 10px', borderRadius: '4px',
+            background: 'var(--bg-panel)', border: '1px solid var(--border-stark)',
             fontSize: '10px', fontWeight: 600, color: color, letterSpacing: '0.5px',
             textTransform: 'uppercase', marginBottom: '8px',
           }}>
@@ -112,9 +110,9 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
               {node.fields.map(field => (
                 <div key={field.name} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', borderRadius: '8px',
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  padding: '8px 12px', borderRadius: '6px',
+                  background: 'var(--bg-obsidian)',
+                  border: '1px solid var(--border-stark)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{
@@ -126,9 +124,9 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
                     {field.modifiers?.filter(m => m !== 'optional').map(mod => (
                       <span key={mod} style={{
                         fontSize: '9px', fontWeight: 600, padding: '2px 6px', borderRadius: '12px',
-                        background: `${MODIFIER_BADGE[mod]?.color ?? '#64748b'}20`,
-                        color: MODIFIER_BADGE[mod]?.color ?? '#64748b', textTransform: 'uppercase',
-                        border: `1px solid ${MODIFIER_BADGE[mod]?.color ?? '#64748b'}40`,
+                        background: `${MODIFIER_BADGE[mod]?.color ?? '#8f8c85'}18`,
+                        color: MODIFIER_BADGE[mod]?.color ?? '#8f8c85', textTransform: 'uppercase',
+                        border: `1px solid ${MODIFIER_BADGE[mod]?.color ?? '#8f8c85'}35`,
                       }}>
                         {MODIFIER_BADGE[mod]?.label ?? mod}
                       </span>
@@ -157,17 +155,17 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
               {outgoing.map((edge, i) => {
                 const target = nodeById(edge.targetNodeId);
                 if (!target) return null;
-                const tc = KIND_COLOR[target.kind] ?? 'var(--accent-gold)';
+                const tc = KIND_COLOR[target.kind] ?? 'var(--kind-interface)';
                 return (
                   <button key={i} onClick={() => onNavigate(target.id)} style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 12px', borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                    padding: '8px 12px', borderRadius: '6px',
+                    background: 'var(--bg-obsidian)', border: '1px solid var(--border-stark)',
                     cursor: 'pointer', textAlign: 'left', width: '100%',
                     fontFamily: 'var(--font-mono)', transition: 'all 0.2s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = tc; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-obsidian)'; e.currentTarget.style.borderColor = 'var(--border-stark)'; }}
                   >
                     <ArrowRight size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, fontWeight: 500, textTransform: 'uppercase' }}>
@@ -193,17 +191,17 @@ export const NodeDetailDrawer: React.FC<NodeDetailDrawerProps> = ({
               {incoming.map((edge, i) => {
                 const src = nodeById(edge.sourceNodeId);
                 if (!src) return null;
-                const sc = KIND_COLOR[src.kind] ?? 'var(--accent-gold)';
+                const sc = KIND_COLOR[src.kind] ?? 'var(--kind-interface)';
                 return (
                   <button key={i} onClick={() => onNavigate(src.id)} style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 12px', borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                    padding: '8px 12px', borderRadius: '6px',
+                    background: 'var(--bg-obsidian)', border: '1px solid var(--border-stark)',
                     cursor: 'pointer', textAlign: 'left', width: '100%',
                     fontFamily: 'var(--font-mono)', transition: 'all 0.2s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = sc; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-panel)'; e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-obsidian)'; e.currentTarget.style.borderColor = 'var(--border-stark)'; }}
                   >
                     <ArrowLeft size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
                     <span style={{ fontWeight: 600, fontSize: '13px', color: sc }}>

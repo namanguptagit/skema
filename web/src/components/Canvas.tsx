@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Search, Filter, Layers } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { SchemaNode, SchemaEdge, NodeKind, RelationshipKind } from '../types';
 import { NodeCard } from './NodeCard';
 
@@ -28,7 +28,7 @@ interface Tooltip {
 
 export const Canvas: React.FC<CanvasProps> = ({
   nodes, edges, selectedNodeId, onNodeMove, onNodeClick,
-  searchQuery, setSearchQuery, activeKinds, setActiveKinds, activeEdges, setActiveEdges
+  searchQuery, setSearchQuery, activeKinds, setActiveKinds, activeEdges
 }) => {
   const [viewBox, setViewBox] = useState({ x: -20, y: -20, w: 1400, h: 900 });
   const [isPanning, setIsPanning] = useState(false);
@@ -164,25 +164,25 @@ export const Canvas: React.FC<CanvasProps> = ({
       >
         <defs>
           <pattern id="dots" width="30" height="30" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.06)" />
+            <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.04)" />
           </pattern>
           <marker id="arrow-ref" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" fillOpacity="0.8" />
+            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-reference)" fillOpacity="0.85" />
           </marker>
           <marker id="arrow-ext" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#a855f7" fillOpacity="0.8" />
+            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-extends)" fillOpacity="0.85" />
           </marker>
           <marker id="arrow-fk" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" fillOpacity="0.8" />
+            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-fk)" fillOpacity="0.85" />
           </marker>
           <marker id="arrow-ref-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" fillOpacity="0.15" />
+            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-reference)" fillOpacity="0.15" />
           </marker>
           <marker id="arrow-ext-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#a855f7" fillOpacity="0.15" />
+            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-extends)" fillOpacity="0.15" />
           </marker>
           <marker id="arrow-fk-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" fillOpacity="0.15" />
+            <polygon points="0 0, 8 3, 0 6" fill="var(--edge-fk)" fillOpacity="0.15" />
           </marker>
         </defs>
 
@@ -219,7 +219,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           const dim = selectedNodeId !== null && !isConnectedToSelected;
 
           const strokeColor = edge.kind === 'extends' || edge.kind === 'implements'
-            ? '#a855f7' : edge.kind === 'foreign-key' ? '#f59e0b' : '#3b82f6';
+            ? 'var(--edge-extends)' : edge.kind === 'foreign-key' ? 'var(--edge-fk)' : 'var(--edge-reference)';
 
           const markerSuffix = dim ? '-dim' : '';
           const markerBase = edge.kind === 'extends' || edge.kind === 'implements'
@@ -308,7 +308,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             {tooltip.source} → {tooltip.target}
           </div>
           {tooltip.label && (
-            <div style={{ fontSize: '11px', color: 'var(--accent-gold)', marginTop: '4px', opacity: 0.8 }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
               via {tooltip.label}
             </div>
           )}
@@ -419,7 +419,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           pointerEvents: 'none',
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.2 }}>⬡</div>
-          <p style={{ color: '#334155', fontSize: '14px', fontWeight: 600, margin: 0 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600, margin: 0 }}>
             Paste a schema in the editor to visualize it
           </p>
         </div>

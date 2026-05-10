@@ -7,6 +7,7 @@ import { NodeDetailDrawer } from './components/NodeDetailDrawer';
 import { LayoutDashboard, Share2, ExternalLink, Download, Image as ImageIcon, FileJson, Link, X } from 'lucide-react';
 import { autoLayout } from './utils/layout';
 import { toPng, toSvg } from 'html-to-image';
+import type { ParsedSchema, NodeKind, RelationshipKind, SchemaNode } from './types';
 
 const DEFAULT_SCHEMA = `interface Profile {
   bio: string;
@@ -82,7 +83,7 @@ function App() {
   const exportSvg = () => {
     const el = document.querySelector('.skema-canvas-container') as HTMLElement;
     if (!el) return;
-    toSvg(el, { backgroundColor: '#050505' })
+    toSvg(el, { backgroundColor: '#1a1a18' })
       .then((dataUrl) => {
         const link = document.createElement('a');
         link.download = 'skema.svg';
@@ -95,7 +96,7 @@ function App() {
   const exportPng = () => {
     const el = document.querySelector('.skema-canvas-container') as HTMLElement;
     if (!el) return;
-    toPng(el, { backgroundColor: '#050505' })
+    toPng(el, { backgroundColor: '#1a1a18' })
       .then((dataUrl) => {
         const link = document.createElement('a');
         link.download = 'skema.png';
@@ -231,21 +232,19 @@ function App() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 24px',
-        background: 'rgba(5, 5, 5, 0.4)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        background: 'var(--bg-panel)',
         flexShrink: 0,
         zIndex: 100,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '36px', height: '36px',
-            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-amber))',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-stark)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '10px',
-            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+            borderRadius: '6px',
           }}>
-            <LayoutDashboard size={18} color="#ffffff" />
+            <LayoutDashboard size={18} color="var(--text-main)" />
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px', color: 'var(--text-main)' }}>Skema</h1>
@@ -254,7 +253,7 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {schema.nodes.length} nodes · {schema.edges.length} edges
           </div>
           <button
@@ -262,10 +261,10 @@ function App() {
             title="Re-run auto-layout (clears manual positions)"
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px', borderRadius: '8px',
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.3)',
-              color: '#a5b4fc', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+              padding: '8px 16px', borderRadius: '6px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-stark)',
+              color: 'var(--text-main)', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
             }}
           >
             ⟳ Re-layout
@@ -277,14 +276,14 @@ function App() {
                 display: 'flex', alignItems: 'center', gap: '8px',
                 padding: '8px 16px', borderRadius: '0px',
                 background: 'var(--bg-obsidian)',
-                border: '2px solid var(--border-stark)',
+                border: '1px solid var(--border-stark)',
                 color: 'var(--text-main)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-mono)',
                 textTransform: 'uppercase'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'var(--accent-amber)';
-                e.currentTarget.style.color = 'var(--accent-amber)';
+                e.currentTarget.style.borderColor = 'var(--border-strong)';
+                e.currentTarget.style.color = 'var(--text-muted)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.borderColor = 'var(--border-stark)';
@@ -296,15 +295,15 @@ function App() {
             {showExportMenu && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: '8px',
-                background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '8px', padding: '4px', display: 'flex', flexDirection: 'column',
-                minWidth: '160px', zIndex: 100, backdropFilter: 'blur(12px)'
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-stark)',
+                borderRadius: '6px', padding: '4px', display: 'flex', flexDirection: 'column',
+                minWidth: '160px', zIndex: 100,
               }}>
                 {(() => {
                   const menuBtnStyle = {
                     display: 'flex', alignItems: 'center', gap: '8px',
                     padding: '8px 12px', background: 'transparent', border: 'none',
-                    color: '#e2e8f0', fontSize: '13px', cursor: 'pointer',
+                    color: 'var(--text-main)', fontSize: '13px', cursor: 'pointer',
                     textAlign: 'left' as const, borderRadius: '4px'
                   };
                   return (
@@ -323,7 +322,7 @@ function App() {
             href="https://github.com"
             target="_blank"
             rel="noreferrer"
-            style={{ padding: '8px', borderRadius: '8px', color: '#64748b', textDecoration: 'none', display: 'flex' }}
+            style={{ padding: '8px', borderRadius: '8px', color: 'var(--text-muted)', textDecoration: 'none', display: 'flex' }}
           >
             <ExternalLink size={20} />
           </a>
@@ -351,8 +350,8 @@ function App() {
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '10px 16px', fontSize: '12px', cursor: 'pointer',
                   borderRight: '2px solid var(--border-stark)',
-                  color: activeFileId === f.id ? 'var(--bg-obsidian)' : 'var(--text-muted)',
-                  background: activeFileId === f.id ? 'var(--accent-copper)' : 'transparent',
+                  color: activeFileId === f.id ? 'var(--text-main)' : 'var(--text-muted)',
+                  background: activeFileId === f.id ? 'var(--bg-elevated)' : 'transparent',
                   fontWeight: activeFileId === f.id ? 700 : 400,
                   textTransform: 'uppercase',
                   whiteSpace: 'nowrap'
@@ -371,15 +370,15 @@ function App() {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderRadius: '50%', padding: '2px',
-                      background: activeFileId === f.id ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)',
-                      color: activeFileId === f.id ? 'var(--bg-obsidian)' : 'var(--text-muted)',
+                      background: activeFileId === f.id ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.04)',
+                      color: activeFileId === f.id ? 'var(--text-main)' : 'var(--text-muted)',
                       transition: 'background 0.2s'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.15)';
+                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.08)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.background = activeFileId === f.id ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.04)';
                     }}
                   >
                     <X size={12} />
@@ -450,8 +449,7 @@ function App() {
               }}>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',
-                  background: isParsing ? 'var(--accent-sand)' : (wasmReady ? 'var(--accent-gold)' : 'var(--accent-rust)'),
-                  boxShadow: isParsing ? '0 0 8px var(--accent-sand)' : (wasmReady ? '0 0 8px var(--accent-gold)' : '0 0 8px var(--accent-rust)'),
+                  background: isParsing ? 'var(--text-muted)' : (wasmReady ? 'var(--kind-interface)' : 'var(--accent-rust)'),
                 }} />
                 <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 500, letterSpacing: '0.5px' }}>
                   WASM {isParsing ? 'Parsing...' : (wasmReady ? 'Active' : 'Init')}
@@ -464,8 +462,7 @@ function App() {
               }}>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',
-                  background: parseError ? '#ef4444' : 'var(--accent-amber)',
-                  boxShadow: parseError ? '0 0 8px #ef4444' : '0 0 8px var(--accent-amber)',
+                  background: parseError ? 'var(--ui-danger)' : 'var(--kind-enum)',
                 }} />
                 <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 500, letterSpacing: '0.5px' }}>
                   AST {parseError ? 'Error' : 'Synced'}

@@ -9,11 +9,11 @@ interface MethodTreeProps {
 
 const getIconForKind = (kind: string) => {
   switch (kind) {
-    case 'interface': return <Hash size={14} color="var(--accent-gold)" />;
-    case 'class': return <Box size={14} color="var(--accent-copper)" />;
-    case 'enum': return <Type size={14} color="var(--accent-amber)" />;
-    case 'table': return <Key size={14} color="var(--accent-rust)" />;
-    default: return <AlignLeft size={14} color="var(--accent-sand)" />;
+    case 'interface': return <Hash size={14} color="var(--kind-interface)" />;
+    case 'class': return <Box size={14} color="var(--kind-class)" />;
+    case 'enum': return <Type size={14} color="var(--kind-enum)" />;
+    case 'table': return <Key size={14} color="var(--kind-table)" />;
+    default: return <AlignLeft size={14} color="var(--kind-scalar)" />;
   }
 };
 
@@ -24,9 +24,7 @@ export const MethodTree: React.FC<MethodTreeProps> = ({ nodes, onNavigate }) => 
   return (
     <div style={{
       width: '260px',
-      background: 'rgba(10, 10, 10, 0.5)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
+      background: 'var(--bg-panel)',
       borderRight: '1px solid var(--border-stark)',
       display: 'flex',
       flexDirection: 'column',

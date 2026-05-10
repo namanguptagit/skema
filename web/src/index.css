@@ -1,20 +1,40 @@
 :root {
   --font-display: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
-  --bg-obsidian: #0a0806;
-  --bg-panel: rgba(26, 20, 15, 0.65);
-  --border-stark: rgba(251, 191, 36, 0.15);
-  --text-main: #fffcf2;
-  --text-muted: #bdaea3;
-  
-  /* Modern Accents (Yellow/Brownish) */
-  --accent-gold: #fbbf24;
-  --accent-amber: #f59e0b;
-  --accent-copper: #d97706;
-  --accent-rust: #b45309;
-  --accent-sand: #d6d3d1;
-  --accent-earth: #78350f;
+
+  /* Base — flat neutrals */
+  --bg-obsidian: #1a1a18;
+  --bg-panel: #222220;
+  --bg-elevated: #2c2c29;
+  --border-stark: #3a3a36;
+  --border-strong: #4a4a46;
+  --text-main: #e8e6e1;
+  --text-muted: #8f8c85;
+
+  /* Legacy accent names — muted, for any remaining references */
+  --accent-gold: #5c6d62;
+  --accent-amber: #6d6658;
+  --accent-copper: #c8c4bc;
+  --accent-rust: #6b534c;
+  --accent-sand: #7a7772;
+  --accent-earth: #4a4845;
+
+  /* Node kinds — neutral stripes only (no green / teal panels) */
+  --node-header-bg: #2c2c29;
+  --kind-interface: #5a5856;
+  --kind-enum: #5c5a58;
+  --kind-class: #565862;
+  --kind-table: #5c524e;
+  --kind-method: #454442;
+  --kind-scalar: #626260;
+
+  /* Graph edges */
+  --edge-reference: #565d66;
+  --edge-extends: #6b5d52;
+  --edge-fk: #665650;
+
+  --ui-danger: #8b5048;
+  --ui-focus: #e8e6e1;
 
   font-family: var(--font-display);
   line-height: 1.5;
@@ -37,7 +57,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow: hidden;
-  background: radial-gradient(circle at 50% -20%, #291b10 0%, var(--bg-obsidian) 100%);
+  background: var(--bg-obsidian);
 }
 
 #root {
@@ -45,31 +65,29 @@ body {
   height: 100vh;
 }
 
+/* Solid panels — no backdrop blur */
 .glass {
-  background: var(--bg-panel);
+  background: var(--bg-elevated);
   border: 1px solid var(--border-stark);
   border-radius: 12px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
 .node-card {
   transition: transform 0.2s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.2s ease;
   cursor: grab;
   border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .node-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
 }
 
 .node-card:active {
   cursor: grabbing;
 }
 
-/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
