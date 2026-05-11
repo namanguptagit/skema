@@ -699,7 +699,7 @@ function App() {
               }}>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',
-                  background: isParsing ? 'var(--text-muted)' : (wasmReady ? 'var(--kind-interface)' : 'var(--accent-rust)'),
+                  background: isParsing ? 'var(--text-muted)' : (wasmReady ? 'var(--color-primary)' : 'var(--accent-rust)'),
                 }} />
                 <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 500, letterSpacing: '0.5px' }}>
                   WASM {isParsing ? 'Parsing...' : (wasmReady ? 'Active' : 'Init')}
@@ -716,7 +716,7 @@ function App() {
               }}>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',
-                  background: parseError ? 'var(--ui-danger)' : 'var(--kind-enum)',
+                  background: parseError ? 'var(--ui-danger)' : 'var(--color-primary)',
                 }} />
                 <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 500, letterSpacing: '0.5px' }}>
                   AST {parseError ? 'Error' : 'Synced'}
