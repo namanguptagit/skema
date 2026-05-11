@@ -16,7 +16,7 @@ an interactive, draggable entity-relationship diagram, all running at native spe
 
 <div align="center">
 
-<img src="assets/skema-app.webp" alt="Skema app: Prisma schema in the editor, explorer tree, and interactive graph canvas" width="100%" />
+<img src="assets/skema-apps.webp" alt="Skema app: Prisma schema in the editor, explorer tree, and interactive graph canvas" width="100%" />
 
 </div>
 
