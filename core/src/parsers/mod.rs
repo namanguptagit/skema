@@ -4,6 +4,7 @@ pub mod prisma;
 pub mod enums;
 pub mod graphql;
 pub mod json_schema;
+pub mod mongodb;
 
 use crate::schema::{FormatTag, ParsedSchema};
 use regex::Regex;
@@ -21,6 +22,7 @@ pub fn detect_format(input: &str) -> FormatTag {
     let prisma_heuristics = Regex::new(r"\bmodel\s+\w+\s*\{").unwrap();
     let protobuf_heuristics = Regex::new(r"\bsyntax\s*=\s*.proto").unwrap();
     let json_heuristics = Regex::new(r#""\$schema"|"\$ref"|"definitions"|"components""#).unwrap();
+    let mongodb_heuristics = Regex::new(r"new\s+(mongoose\.)?Schema|mongoose\.model").unwrap();
 
     // Check JSON first to avoid collisions if a JSON file contains string values matching other heuristics
     if input.trim_start().starts_with('{') && json_heuristics.is_match(input) {
@@ -38,6 +40,9 @@ pub fn detect_format(input: &str) -> FormatTag {
     }
     if protobuf_heuristics.is_match(input) {
         return FormatTag::Protobuf;
+    }
+    if mongodb_heuristics.is_match(input) {
+        return FormatTag::Mongodb;
     }
     if ts_heuristics.is_match(input) {
         return FormatTag::TypeScript;
@@ -57,6 +62,7 @@ pub fn parse_schema(input: &str) -> Result<ParsedSchema, String> {
         FormatTag::Prisma => prisma::PrismaParser.parse(input),
         FormatTag::GraphQL => graphql::GraphQLParser.parse(input),
         FormatTag::JsonSchema => json_schema::JsonSchemaParser.parse(input),
+        FormatTag::Mongodb => mongodb::MongodbParser.parse(input),
         _ => Err(format!("Unsupported format or unknown schema type: {:?}", format)),
     }?;
 

@@ -13,6 +13,7 @@ pub enum FormatTag {
     CSharp,
     Python,
     Protobuf,
+    Mongodb,
     Unknown,
 }
 
