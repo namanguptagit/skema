@@ -40,7 +40,7 @@ export const Editor: React.FC<EditorProps> = ({ fileName, value, onChange, parse
           onChange={(v) => onChange(v)}
           basicSetup={basicSetupOptions}
           indentWithTab
-          placeholder="Paste your TypeScript, SQL, GraphQL, or Prisma schema here…"
+          placeholder="Paste your TypeScript, SQL, GraphQL, Prisma, or MongoDB schema here…"
           style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
           className="skema-codemirror-root"
           aria-label="Schema source"
@@ -57,7 +57,7 @@ export const Editor: React.FC<EditorProps> = ({ fileName, value, onChange, parse
           </>
         ) : (
           <span style={{ opacity: 0.88 }}>
-            Supports TypeScript · GraphQL · SQL · Prisma · JSON Schema
+            Supports TypeScript · GraphQL · SQL · Prisma · JSON Schema · MongoDB
           </span>
         )}
       </div>

@@ -35,6 +35,9 @@ export function getLanguageExtensions(fileName: string): Extension[] {
     case 'graphql':
     case 'gql':
       return [javascript({ jsx: false, typescript: true })];
+    case 'mongodb':
+    case 'mongoose':
+      return [javascript({ jsx: false, typescript: true })];
     case 'txt':
     default:
       return [javascript({ jsx: false, typescript: true })];

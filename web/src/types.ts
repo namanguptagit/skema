@@ -9,6 +9,7 @@ export type FormatTag =
   | 'CSharp' 
   | 'Python' 
   | 'Protobuf' 
+  | 'Mongodb' 
   | 'Unknown';
 
 export type NodeKind = 
