@@ -188,4 +188,30 @@ mod tests {
         assert_eq!(edge.target_node_id, "Address");
         assert_eq!(edge.kind, RelationshipKind::References);
     }
+    #[test]
+    fn test_mongodb_parsing() {
+        let mongoose_code = r#"
+            const userSchema = new Schema({
+                username: { type: String, unique: true },
+                email: String,
+                posts: [{ type: Schema.Types.ObjectId, ref: 'Post' }]
+            });
+            const PostSchema = new mongoose.Schema({
+                title: String,
+                author: { type: Schema.Types.ObjectId, ref: 'User' }
+            });
+        "#;
+
+        let parsed = parse_schema(mongoose_code).expect("Should parse");
+        // user and Post
+        assert_eq!(parsed.nodes.len(), 2);
+
+        let user = parsed.nodes.iter().find(|n| n.id == "user").unwrap();
+        assert_eq!(user.kind, NodeKind::Table);
+        assert_eq!(user.format, FormatTag::Mongodb);
+        assert_eq!(user.fields.len(), 3);
+
+        // Edges: User -> Post (via posts), Post -> User (via author)
+        assert_eq!(parsed.edges.len(), 2);
+    }
 }
